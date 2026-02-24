@@ -519,6 +519,11 @@ export interface MapLayers {
   commodityHubs: boolean;
   // Gulf FDI layers
   gulfInvestments: boolean;
+  // Care variant layers
+  careFacilities: boolean;
+  roboticsLabs: boolean;
+  policyEvents: boolean;
+  careStartups: boolean;
 }
 
 export interface AIDataCenter {

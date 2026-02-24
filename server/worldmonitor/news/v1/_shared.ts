@@ -58,14 +58,29 @@ export function buildArticlePrompts(
   const headlineText = uniqueHeadlines.map((h, i) => `${i + 1}. ${h}`).join('\n');
   const intelSection = opts.geoContext ? `\n\n${opts.geoContext}` : '';
   const isTechVariant = opts.variant === 'tech';
-  const dateContext = `Current date: ${new Date().toISOString().split('T')[0]}.${isTechVariant ? '' : ' Provide geopolitical context appropriate for the current date.'}`;
+  const isCareVariant = opts.variant === 'care';
+  const dateContext = `Current date: ${new Date().toISOString().split('T')[0]}.${isTechVariant || isCareVariant ? '' : ' Provide geopolitical context appropriate for the current date.'}`;
   const langInstruction = opts.lang && opts.lang !== 'en' ? `\nIMPORTANT: Output the summary in ${opts.lang.toUpperCase()} language.` : '';
 
   let systemPrompt: string;
   let userPrompt: string;
 
   if (opts.mode === 'brief') {
-    if (isTechVariant) {
+    if (isCareVariant) {
+      systemPrompt = `${dateContext}
+
+You are an AI Care Intelligence analyst.
+Summarize the key care technology development in 2-3 sentences.
+Rules:
+- Focus on: developmental disability care technology, behavioral analysis AI, care robotics, welfare policy changes, public procurement opportunities, and ABA methodology advances
+- Korean welfare budget cycle context: Aug-Sep (budget planning), Jan-Mar (project announcements), Apr-Jun (execution)
+- Key institutions to track: 복지부, 경기도, 국립법무병원
+- Track CareVia competitors: Kakao Healthcare, Naver AI Health
+- When multiple signals converge (e.g., policy change + robotics news + procurement), synthesize into an actionable intelligence finding
+- Lead with the most actionable item for care AI business strategy
+- Ignore military conflicts and cryptocurrency
+- No bullet points, no meta-commentary${langInstruction}`;
+    } else if (isTechVariant) {
       systemPrompt = `${dateContext}
 
 Summarize the key tech/startup development in 2-3 sentences.
@@ -87,9 +102,21 @@ Rules:
 - If focal points show news + signals convergence, that's the lead
 - No bullet points, no meta-commentary${langInstruction}`;
     }
-    userPrompt = `Summarize the top story:\n${headlineText}${intelSection}`;
+    userPrompt = isCareVariant
+      ? `Analyze these articles for care technology implications. Prioritize:\n1. Policy changes affecting AI care services\n2. Competitive moves in Korean care AI market\n3. Care robotics hardware partnership opportunities\n4. Public procurement signals for AI behavioral analysis\n${headlineText}${intelSection}`
+      : `Summarize the top story:\n${headlineText}${intelSection}`;
   } else if (opts.mode === 'analysis') {
-    if (isTechVariant) {
+    if (isCareVariant) {
+      systemPrompt = `${dateContext}
+
+Analyze the care technology trend in 2-3 sentences.
+Rules:
+- Focus on care AI implications: welfare policy shifts, care robotics partnerships, procurement opportunities, ABA methodology advances
+- Track competitive landscape: Kakao Healthcare, Naver AI Health, Samsung Bot Care
+- Korean welfare budget cycle: Aug-Sep (budget planning), Jan-Mar (project announcements), Apr-Jun (execution)
+- Lead with actionable business intelligence for care AI companies
+- When policy + technology + procurement signals converge, flag as opportunity`;
+    } else if (isTechVariant) {
       systemPrompt = `${dateContext}
 
 Analyze the tech/startup trend in 2-3 sentences.
@@ -110,9 +137,11 @@ Rules:
 - If focal points show news-signal correlation, flag as escalation
 - Connect dots, be specific about implications`;
     }
-    userPrompt = isTechVariant
-      ? `What's the key tech trend or development?\n${headlineText}${intelSection}`
-      : `What's the key pattern or risk?\n${headlineText}${intelSection}`;
+    userPrompt = isCareVariant
+      ? `What's the key care technology trend or opportunity?\n${headlineText}${intelSection}`
+      : isTechVariant
+        ? `What's the key tech trend or development?\n${headlineText}${intelSection}`
+        : `What's the key pattern or risk?\n${headlineText}${intelSection}`;
   } else if (opts.mode === 'translate') {
     const targetLang = opts.variant;
     systemPrompt = `You are a professional news translator. Translate the following news headlines/summaries into ${targetLang}.
@@ -123,9 +152,11 @@ Rules:
 - If the text is already in ${targetLang}, return it as is.`;
     userPrompt = `Translate to ${targetLang}:\n${headlines[0]}`;
   } else {
-    systemPrompt = isTechVariant
-      ? `${dateContext}\n\nSynthesize tech news in 2 sentences. Focus on startups, AI, funding, products. Ignore politics unless directly about tech regulation.${langInstruction}`
-      : `${dateContext}\n\nSynthesize in 2 sentences max. Lead with substance. NEVER start with "Breaking news" or "Tonight" - just state the insight directly. CRITICAL focal points with news-signal convergence are significant.${langInstruction}`;
+    systemPrompt = isCareVariant
+      ? `${dateContext}\n\nSynthesize care intelligence in 2 sentences. Focus on developmental disability AI, care robotics, welfare policy, and procurement. Ignore military conflicts and cryptocurrency.${langInstruction}`
+      : isTechVariant
+        ? `${dateContext}\n\nSynthesize tech news in 2 sentences. Focus on startups, AI, funding, products. Ignore politics unless directly about tech regulation.${langInstruction}`
+        : `${dateContext}\n\nSynthesize in 2 sentences max. Lead with substance. NEVER start with "Breaking news" or "Tonight" - just state the insight directly. CRITICAL focal points with news-signal convergence are significant.${langInstruction}`;
     userPrompt = `Key takeaway:\n${headlineText}${intelSection}`;
   }
 

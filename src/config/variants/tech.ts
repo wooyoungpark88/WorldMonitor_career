@@ -238,6 +238,11 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
   centralBanks: false,
   commodityHubs: false,
   gulfInvestments: false,
+  // Care layers (disabled in tech variant)
+  careFacilities: false,
+  roboticsLabs: false,
+  policyEvents: false,
+  careStartups: false,
 };
 
 // Mobile defaults for tech variant
@@ -279,6 +284,11 @@ export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {
   centralBanks: false,
   commodityHubs: false,
   gulfInvestments: false,
+  // Care layers (disabled in tech variant)
+  careFacilities: false,
+  roboticsLabs: false,
+  policyEvents: false,
+  careStartups: false,
 };
 
 export const VARIANT_CONFIG: VariantConfig = {

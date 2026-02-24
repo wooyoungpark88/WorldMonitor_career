@@ -122,6 +122,30 @@ const VARIANT_META: Record<string, {
       'Market radar signals',
     ],
   },
+  care: {
+    title: 'Care Monitor - AI Care Intelligence Dashboard',
+    description: 'Real-time AI care intelligence dashboard tracking developmental disability care, behavioral analysis AI, care robotics, welfare policy, and public procurement.',
+    keywords: 'care dashboard, AI care, developmental disability, behavioral analysis, care robotics, welfare policy, public procurement, ABA therapy, assistive technology, digital therapeutics, disability tech, healthcare AI',
+    url: 'https://care.worldmonitor.app/',
+    siteName: 'Care Monitor',
+    shortName: 'CareMonitor',
+    subject: 'AI Care, Developmental Disability, and Care Robotics Intelligence',
+    classification: 'Care Dashboard, Healthcare AI Tracker, Welfare Intelligence',
+    categories: ['health', 'news'],
+    features: [
+      'Welfare policy tracking',
+      'AI care research monitoring',
+      'Care robotics tracking',
+      'ABA methodology research',
+      'Public procurement alerts',
+      'Competitor monitoring',
+      'Care facility mapping',
+      'Robotics lab tracking',
+      'Healthcare startup mapping',
+      'Care readiness scoring',
+      'Policy cycle detection',
+    ],
+  },
 };
 
 const activeVariant = process.env.VITE_VARIANT || 'full';

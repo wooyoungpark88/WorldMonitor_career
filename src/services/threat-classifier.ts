@@ -212,6 +212,54 @@ const TECH_LOW_KEYWORDS: KeywordMap = {
   'open source': 'tech',
 };
 
+// Care variant keywords — care intelligence classification
+const CARE_HIGH_KEYWORDS: KeywordMap = {
+  'developmental disability': 'health',
+  'behavioral analysis ai': 'tech',
+  'care ai korea': 'tech',
+  'vision ai surveillance': 'tech',
+  'aba technology': 'tech',
+  '발달장애': 'health',
+  'ai 돌봄': 'tech',
+  '행동분석': 'health',
+  'carevia': 'tech',
+  'care robot recall': 'infrastructure',
+  'welfare fraud': 'economic',
+  'disability rights': 'political',
+};
+
+const CARE_MEDIUM_KEYWORDS: KeywordMap = {
+  'care robot': 'tech',
+  'assistive technology': 'tech',
+  'digital therapeutic': 'health',
+  'augmentative communication': 'tech',
+  'aac device': 'tech',
+  'rehabilitation ai': 'health',
+  '복지 ai': 'tech',
+  '케어 로봇': 'tech',
+  '공공조달 ai': 'economic',
+  'welfare policy': 'political',
+  'disability ai': 'tech',
+  'elderly care ai': 'health',
+  'naver ai health': 'tech',
+  'kakao health': 'tech',
+};
+
+const CARE_LOW_KEYWORDS: KeywordMap = {
+  'disability startup': 'economic',
+  'care funding': 'economic',
+  'assistive robotics': 'tech',
+  'welfare budget': 'economic',
+  'healthcare ai': 'health',
+  'digital health': 'health',
+  'rehabilitation robot': 'tech',
+  'special education': 'health',
+  'therapy ai': 'health',
+  '돌봄 서비스': 'health',
+  '장애인 복지': 'political',
+  '케어테크': 'tech',
+};
+
 const EXCLUSIONS = [
   'protein', 'couples', 'relationship', 'dating', 'diet', 'fitness',
   'recipe', 'cooking', 'shopping', 'fashion', 'celebrity', 'movie',
@@ -257,6 +305,7 @@ export function classifyByKeyword(title: string, variant = 'full'): ThreatClassi
   }
 
   const isTech = variant === 'tech';
+  const isCare = variant === 'care';
 
   // Priority cascade: critical → high → medium → low → info
   let match = matchKeywords(lower, CRITICAL_KEYWORDS);
@@ -270,6 +319,11 @@ export function classifyByKeyword(title: string, variant = 'full'): ThreatClassi
     if (match) return { level: 'high', category: match.category, confidence: 0.75, source: 'keyword' };
   }
 
+  if (isCare) {
+    match = matchKeywords(lower, CARE_HIGH_KEYWORDS);
+    if (match) return { level: 'high', category: match.category, confidence: 0.75, source: 'keyword' };
+  }
+
   match = matchKeywords(lower, MEDIUM_KEYWORDS);
   if (match) return { level: 'medium', category: match.category, confidence: 0.7, source: 'keyword' };
 
@@ -278,11 +332,21 @@ export function classifyByKeyword(title: string, variant = 'full'): ThreatClassi
     if (match) return { level: 'medium', category: match.category, confidence: 0.65, source: 'keyword' };
   }
 
+  if (isCare) {
+    match = matchKeywords(lower, CARE_MEDIUM_KEYWORDS);
+    if (match) return { level: 'medium', category: match.category, confidence: 0.65, source: 'keyword' };
+  }
+
   match = matchKeywords(lower, LOW_KEYWORDS);
   if (match) return { level: 'low', category: match.category, confidence: 0.6, source: 'keyword' };
 
   if (isTech) {
     match = matchKeywords(lower, TECH_LOW_KEYWORDS);
+    if (match) return { level: 'low', category: match.category, confidence: 0.55, source: 'keyword' };
+  }
+
+  if (isCare) {
+    match = matchKeywords(lower, CARE_LOW_KEYWORDS);
     if (match) return { level: 'low', category: match.category, confidence: 0.55, source: 'keyword' };
   }
 

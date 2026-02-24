@@ -86,6 +86,11 @@ const FULL_MAP_LAYERS: MapLayers = {
   centralBanks: false,
   commodityHubs: false,
   gulfInvestments: false,
+  // Care layers (disabled in full variant)
+  careFacilities: false,
+  roboticsLabs: false,
+  policyEvents: false,
+  careStartups: false,
 };
 
 const FULL_MOBILE_MAP_LAYERS: MapLayers = {
@@ -127,6 +132,11 @@ const FULL_MOBILE_MAP_LAYERS: MapLayers = {
   centralBanks: false,
   commodityHubs: false,
   gulfInvestments: false,
+  // Care layers (disabled in full variant)
+  careFacilities: false,
+  roboticsLabs: false,
+  policyEvents: false,
+  careStartups: false,
 };
 
 // ============================================
@@ -208,6 +218,11 @@ const TECH_MAP_LAYERS: MapLayers = {
   centralBanks: false,
   commodityHubs: false,
   gulfInvestments: false,
+  // Care layers (disabled in tech variant)
+  careFacilities: false,
+  roboticsLabs: false,
+  policyEvents: false,
+  careStartups: false,
 };
 
 const TECH_MOBILE_MAP_LAYERS: MapLayers = {
@@ -249,6 +264,11 @@ const TECH_MOBILE_MAP_LAYERS: MapLayers = {
   centralBanks: false,
   commodityHubs: false,
   gulfInvestments: false,
+  // Care layers (disabled in tech variant)
+  careFacilities: false,
+  roboticsLabs: false,
+  policyEvents: false,
+  careStartups: false,
 };
 
 // ============================================
@@ -325,6 +345,11 @@ const FINANCE_MAP_LAYERS: MapLayers = {
   centralBanks: true,
   commodityHubs: false,
   gulfInvestments: false,
+  // Care layers (disabled in finance variant)
+  careFacilities: false,
+  roboticsLabs: false,
+  policyEvents: false,
+  careStartups: false,
 };
 
 const FINANCE_MOBILE_MAP_LAYERS: MapLayers = {
@@ -366,14 +391,129 @@ const FINANCE_MOBILE_MAP_LAYERS: MapLayers = {
   centralBanks: true,
   commodityHubs: false,
   gulfInvestments: false,
+  // Care layers (disabled in finance variant)
+  careFacilities: false,
+  roboticsLabs: false,
+  policyEvents: false,
+  careStartups: false,
+};
+
+// ============================================
+// CARE VARIANT (AI Care/Welfare)
+// ============================================
+const CARE_PANELS: Record<string, PanelConfig> = {
+  map: { name: 'Care Intelligence Map', enabled: true, priority: 1 },
+  'live-news': { name: 'Care Headlines', enabled: true, priority: 1 },
+  insights: { name: 'AI Care Insights', enabled: true, priority: 1 },
+  welfarePolicy: { name: 'Welfare Policy', enabled: true, priority: 1 },
+  aiCareResearch: { name: 'AI Care Research', enabled: true, priority: 1 },
+  careRobotics: { name: 'Care Robotics', enabled: true, priority: 1 },
+  abaDevelopmental: { name: 'ABA & Development', enabled: true, priority: 1 },
+  procurement: { name: 'Public Procurement', enabled: true, priority: 1 },
+  competitor: { name: 'Competitor Watch', enabled: true, priority: 1 },
+  healthcareIndustry: { name: 'Healthcare Industry', enabled: true, priority: 2 },
+  regulation: { name: 'Care AI Regulation', enabled: true, priority: 2 },
+  monitors: { name: 'My Monitors', enabled: true, priority: 2 },
+};
+
+const CARE_MAP_LAYERS: MapLayers = {
+  conflicts: false,
+  bases: false,
+  cables: false,
+  pipelines: false,
+  hotspots: false,
+  ais: false,
+  nuclear: false,
+  irradiators: false,
+  sanctions: false,
+  weather: false,
+  economic: false,
+  waterways: false,
+  outages: false,
+  cyberThreats: false,
+  datacenters: false,
+  protests: false,
+  flights: false,
+  military: false,
+  natural: false,
+  spaceports: false,
+  minerals: false,
+  fires: false,
+  // Data source layers
+  ucdpEvents: false,
+  displacement: false,
+  climate: false,
+  // Tech layers (disabled in care variant)
+  startupHubs: false,
+  cloudRegions: false,
+  accelerators: false,
+  techHQs: false,
+  techEvents: false,
+  // Finance layers (disabled in care variant)
+  stockExchanges: false,
+  financialCenters: false,
+  centralBanks: false,
+  commodityHubs: false,
+  gulfInvestments: false,
+  // Care-specific layers
+  careFacilities: true,
+  roboticsLabs: true,
+  policyEvents: true,
+  careStartups: true,
+};
+
+const CARE_MOBILE_MAP_LAYERS: MapLayers = {
+  conflicts: false,
+  bases: false,
+  cables: false,
+  pipelines: false,
+  hotspots: false,
+  ais: false,
+  nuclear: false,
+  irradiators: false,
+  sanctions: false,
+  weather: false,
+  economic: false,
+  waterways: false,
+  outages: false,
+  cyberThreats: false,
+  datacenters: false,
+  protests: false,
+  flights: false,
+  military: false,
+  natural: false,
+  spaceports: false,
+  minerals: false,
+  fires: false,
+  // Data source layers
+  ucdpEvents: false,
+  displacement: false,
+  climate: false,
+  // Tech layers (disabled)
+  startupHubs: false,
+  cloudRegions: false,
+  accelerators: false,
+  techHQs: false,
+  techEvents: false,
+  // Finance layers (disabled)
+  stockExchanges: false,
+  financialCenters: false,
+  centralBanks: false,
+  commodityHubs: false,
+  gulfInvestments: false,
+  // Care layers (limited on mobile)
+  careFacilities: true,
+  roboticsLabs: false,
+  policyEvents: true,
+  careStartups: false,
 };
 
 // ============================================
 // VARIANT-AWARE EXPORTS
 // ============================================
-export const DEFAULT_PANELS = SITE_VARIANT === 'tech' ? TECH_PANELS : SITE_VARIANT === 'finance' ? FINANCE_PANELS : FULL_PANELS;
-export const DEFAULT_MAP_LAYERS = SITE_VARIANT === 'tech' ? TECH_MAP_LAYERS : SITE_VARIANT === 'finance' ? FINANCE_MAP_LAYERS : FULL_MAP_LAYERS;
-export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'tech' ? TECH_MOBILE_MAP_LAYERS : SITE_VARIANT === 'finance' ? FINANCE_MOBILE_MAP_LAYERS : FULL_MOBILE_MAP_LAYERS;
+export const DEFAULT_PANELS = SITE_VARIANT === 'tech' ? TECH_PANELS : SITE_VARIANT === 'finance' ? FINANCE_PANELS : SITE_VARIANT === 'care' ? CARE_PANELS : FULL_PANELS;
+export const DEFAULT_MAP_LAYERS = SITE_VARIANT === 'tech' ? TECH_MAP_LAYERS : SITE_VARIANT === 'finance' ? FINANCE_MAP_LAYERS : SITE_VARIANT === 'care' ? CARE_MAP_LAYERS : FULL_MAP_LAYERS;
+export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'tech' ? TECH_MOBILE_MAP_LAYERS : SITE_VARIANT === 'finance' ? FINANCE_MOBILE_MAP_LAYERS : SITE_VARIANT === 'care' ? CARE_MOBILE_MAP_LAYERS : FULL_MOBILE_MAP_LAYERS;
 
 /** Maps map-layer toggle keys to their data-freshness source IDs (single source of truth). */
 export const LAYER_TO_SOURCE: Partial<Record<keyof MapLayers, DataSourceId[]>> = {

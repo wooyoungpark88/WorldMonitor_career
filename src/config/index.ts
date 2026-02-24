@@ -3,6 +3,7 @@
 // VITE_VARIANT=tech → tech.worldmonitor.app (tech-focused)
 // VITE_VARIANT=full → worldmonitor.app (geopolitical)
 // VITE_VARIANT=finance → finance.worldmonitor.app (markets/trading)
+// VITE_VARIANT=care → care.worldmonitor.app (AI care/welfare)
 
 export { SITE_VARIANT } from './variant';
 
@@ -115,3 +116,13 @@ export {
 
 // Gulf FDI investment database
 export { GULF_INVESTMENTS } from './gulf-fdi';
+
+// Care variant - these are included in care builds
+export {
+  CARE_FACILITIES,
+  ROBOTICS_LABS,
+  CARE_STARTUPS,
+  type CareFacility,
+  type RoboticsLab,
+  type CareStartup,
+} from './care-geo';

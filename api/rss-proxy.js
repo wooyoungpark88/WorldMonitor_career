@@ -205,6 +205,11 @@ const ALLOWED_DOMAINS = [
   'seekingalpha.com',
   'www.coindesk.com',
   'cointelegraph.com',
+  // Care variant
+  'www.nature.com',
+  'spectrum.ieee.org',
+  'www.mobihealthnews.com',
+  'www.healthcareitnews.com',
 ];
 
 export default async function handler(req) {

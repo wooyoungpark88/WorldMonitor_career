@@ -96,6 +96,7 @@ import { AI_RESEARCH_LABS } from '@/config/ai-research-labs';
 import { STARTUP_ECOSYSTEMS } from '@/config/startup-ecosystems';
 import { TECH_HQS, ACCELERATORS } from '@/config/tech-geo';
 import { STOCK_EXCHANGES, FINANCIAL_CENTERS, CENTRAL_BANKS, COMMODITY_HUBS } from '@/config/finance-geo';
+import { CARE_FACILITIES, ROBOTICS_LABS, CARE_STARTUPS } from '@/config/care-geo';
 import { isDesktopRuntime } from '@/services/runtime';
 import { IntelligenceServiceClient } from '@/generated/client/worldmonitor/intelligence/v1/service_client';
 import { ResearchServiceClient } from '@/generated/client/worldmonitor/research/v1/service_client';
@@ -119,11 +120,11 @@ interface DesktopRuntimeInfo {
 }
 
 type UpdaterOutcome = 'no_update' | 'update_available' | 'open_failed' | 'fetch_failed';
-type DesktopBuildVariant = 'full' | 'tech' | 'finance';
+type DesktopBuildVariant = 'full' | 'tech' | 'finance' | 'care';
 
 const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
 const DESKTOP_BUILD_VARIANT: DesktopBuildVariant = (
-  import.meta.env.VITE_VARIANT === 'tech' || import.meta.env.VITE_VARIANT === 'finance'
+  import.meta.env.VITE_VARIANT === 'tech' || import.meta.env.VITE_VARIANT === 'finance' || import.meta.env.VITE_VARIANT === 'care'
     ? import.meta.env.VITE_VARIANT
     : 'full'
 );
@@ -696,7 +697,7 @@ export class App {
 
   private setupPizzIntIndicator(): void {
     // Skip DEFCON indicator for tech/startup and finance variants
-    if (SITE_VARIANT === 'tech' || SITE_VARIANT === 'finance') return;
+    if (SITE_VARIANT === 'tech' || SITE_VARIANT === 'finance' || SITE_VARIANT === 'care') return;
 
     this.pizzintIndicator = new PizzIntIndicator();
     const headerLeft = this.container.querySelector('.header-left');
@@ -1315,10 +1316,15 @@ export class App {
           placeholder: t('modals.search.placeholderFinance'),
           hint: t('modals.search.hintFinance'),
         }
-        : {
-          placeholder: t('modals.search.placeholder'),
-          hint: t('modals.search.hint'),
-        };
+        : SITE_VARIANT === 'care'
+          ? {
+            placeholder: 'Search care facilities, robotics labs, startups...',
+            hint: 'Search across care intelligence data',
+          }
+          : {
+            placeholder: t('modals.search.placeholder'),
+            hint: t('modals.search.hint'),
+          };
     this.searchModal = new SearchModal(this.container, searchOptions);
 
     if (SITE_VARIANT === 'tech') {
@@ -1460,6 +1466,30 @@ export class App {
         title: h.name,
         subtitle: `${h.type} • ${h.city}, ${h.country}${h.commodities ? ` • ${h.commodities.slice(0, 3).join(', ')}` : ''}`,
         data: h,
+      })));
+    }
+
+    if (SITE_VARIANT === 'care') {
+      // Care variant: care-specific sources
+      this.searchModal.registerSource('carefacility', CARE_FACILITIES.map(f => ({
+        id: f.id,
+        title: f.name,
+        subtitle: `${f.type} • ${f.operator} • ${f.country}${f.capacity ? ` • ${f.capacity} capacity` : ''}`,
+        data: f,
+      })));
+
+      this.searchModal.registerSource('roboticslab', ROBOTICS_LABS.map(l => ({
+        id: l.id,
+        title: l.name,
+        subtitle: `${l.region} • ${l.focus.join(', ')}${l.products ? ` • ${l.products.join(', ')}` : ''}`,
+        data: l,
+      })));
+
+      this.searchModal.registerSource('carestartup', CARE_STARTUPS.map(s => ({
+        id: s.id,
+        title: s.name,
+        subtitle: `${s.domain} • ${s.country} • ${s.fundingStage}${s.fundingAmountM ? ` • $${s.fundingAmountM}M` : ''}`,
+        data: s,
       })));
     }
 
@@ -1862,6 +1892,15 @@ export class App {
               <span class="variant-icon">📈</span>
               <span class="variant-label">${t('header.finance')}</span>
             </a>
+            <span class="variant-divider"></span>
+            <a href="${this.isDesktopApp ? '#' : (SITE_VARIANT === 'care' ? '#' : 'https://care.worldmonitor.app')}"
+               class="variant-option ${SITE_VARIANT === 'care' ? 'active' : ''}"
+               data-variant="care"
+               ${!this.isDesktopApp && SITE_VARIANT !== 'care' ? 'target="_blank" rel="noopener"' : ''}
+               title="Care${SITE_VARIANT === 'care' ? ` ${t('common.currentVariant')}` : ''}">
+              <span class="variant-icon">🏥</span>
+              <span class="variant-label">CARE</span>
+            </a>
           </div>
           <span class="logo">MONITOR</span><span class="version">v${__APP_VERSION__}</span>${BETA_MODE ? '<span class="beta-badge">BETA</span>' : ''}
           <a href="https://x.com/eliehabib" target="_blank" rel="noopener" class="credit-link">
@@ -1905,7 +1944,7 @@ export class App {
         <div class="map-section" id="mapSection">
           <div class="panel-header">
             <div class="panel-header-left">
-              <span class="panel-title">${SITE_VARIANT === 'tech' ? t('panels.techMap') : t('panels.map')}</span>
+              <span class="panel-title">${SITE_VARIANT === 'tech' ? t('panels.techMap') : SITE_VARIANT === 'care' ? 'Care Intelligence Map' : t('panels.map')}</span>
             </div>
             <span class="header-clock" id="headerClock"></span>
             <button class="map-pin-btn" id="mapPinBtn" title="${t('header.pinMap')}">
@@ -3533,7 +3572,7 @@ export class App {
       .map(([key, feeds]) => ({ key, feeds }));
 
     // Stage category fetches to avoid startup bursts and API pressure in all variants.
-    const maxCategoryConcurrency = SITE_VARIANT === 'tech' ? 4 : 5;
+    const maxCategoryConcurrency = SITE_VARIANT === 'tech' || SITE_VARIANT === 'care' ? 4 : 5;
     const categoryConcurrency = Math.max(1, Math.min(maxCategoryConcurrency, categories.length));
     const categoryResults: PromiseSettledResult<NewsItem[]>[] = [];
     for (let i = 0; i < categories.length; i += categoryConcurrency) {
