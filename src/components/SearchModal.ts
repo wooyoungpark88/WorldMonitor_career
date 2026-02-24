@@ -262,7 +262,7 @@ export class SearchModal {
       commodityhub: '📦',
       carefacility: '🏥',
       roboticslab: '🤖',
-      carestartup: '💡',
+      carestartup: '💊',
     };
 
     this.resultsList.innerHTML = this.results.map((result, i) => `
