@@ -3,7 +3,7 @@ export type ThreatLevel = 'critical' | 'high' | 'medium' | 'low' | 'info';
 export type EventCategory =
   | 'conflict' | 'protest' | 'disaster' | 'diplomatic' | 'economic'
   | 'terrorism' | 'cyber' | 'health' | 'environmental' | 'military'
-  | 'crime' | 'infrastructure' | 'tech' | 'general';
+  | 'crime' | 'infrastructure' | 'tech' | 'general' | 'political';
 
 export interface ThreatClassification {
   level: ThreatLevel;

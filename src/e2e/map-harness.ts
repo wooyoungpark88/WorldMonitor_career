@@ -171,6 +171,10 @@ const allLayersEnabled: MapLayers = {
   centralBanks: true,
   commodityHubs: true,
   gulfInvestments: true,
+  careFacilities: true,
+  roboticsLabs: true,
+  policyEvents: true,
+  careStartups: true,
 };
 
 const allLayersDisabled: MapLayers = {
@@ -209,6 +213,10 @@ const allLayersDisabled: MapLayers = {
   centralBanks: false,
   commodityHubs: false,
   gulfInvestments: false,
+  careFacilities: false,
+  roboticsLabs: false,
+  policyEvents: false,
+  careStartups: false,
 };
 
 const SEEDED_NEWS_LOCATIONS: Array<{
