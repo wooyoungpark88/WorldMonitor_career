@@ -260,6 +260,9 @@ export class SearchModal {
       financialcenter: '💰',
       centralbank: '🏦',
       commodityhub: '📦',
+      carefacility: '🏥',
+      roboticslab: '🤖',
+      carestartup: '💊',
     };
 
     this.resultsList.innerHTML = this.results.map((result, i) => `
