@@ -142,7 +142,7 @@ All three variants run from a single codebase — switch between them with one c
 - Stablecoin peg health monitor (USDT, USDC, DAI, FDUSD, USDe)
 - Fear & Greed Index with 30-day history
 - Bitcoin technical trend (SMA50, SMA200, VWAP, Mayer Multiple)
-- JPY liquidity signal, QQQ/XLP macro regime, BTC hash rate
+- JPY liquidity signal, QQQ/XLP macro regime, BTC hash power
 - Inline SVG sparklines and donut gauges for visual trends
 
 </details>
@@ -832,8 +832,8 @@ The Market Radar panel computes a composite BUY/CASH verdict from 7 independent 
 | **Flow Structure**  | BTC 5-day return vs QQQ 5-day return  | Gap < 5% (aligned)          |
 | **Macro Regime**    | QQQ 20-day ROC vs XLP 20-day ROC      | QQQ outperforming (risk-on) |
 | **Technical Trend** | BTC vs SMA50 + 30-day VWAP            | Above both (bullish)        |
-| **Hash Rate**       | Bitcoin mining hashrate 30-day change | Growing > 3%                |
-| **Mining Cost**     | BTC price vs hashrate-implied cost    | Price > $60K (profitable)   |
+| **Hash Power**      | Bitcoin mining hashpower 30-day change | Growing > 3%                |
+| **Mining Cost**     | BTC price vs hashpower-implied cost    | Price > $60K (profitable)   |
 | **Fear & Greed**    | alternative.me sentiment index        | Value > 50                  |
 
 The overall verdict requires ≥57% of known signals to be bullish (BUY), otherwise CASH. Signals with unknown data are excluded from the denominator.
@@ -1325,7 +1325,7 @@ Set `WS_RELAY_URL` (server-side, HTTPS) and `VITE_WS_RELAY_URL` (client-side, WS
 | **AI/ML**             | Ollama / LM Studio (local, OpenAI-compatible), Groq (Llama 3.1 8B), OpenRouter (fallback), Transformers.js (browser-side T5, NER, embeddings) |
 | **Caching**           | Redis (Upstash) — 3-tier cache with in-memory + Redis + upstream, cross-user AI deduplication. Vercel CDN (s-maxage). Service worker (Workbox) |
 | **Geopolitical APIs** | OpenSky, GDELT, ACLED, UCDP, HAPI, USGS, GDACS, NASA EONET, NASA FIRMS, Polymarket, Cloudflare Radar, WorldPop                                 |
-| **Market APIs**       | Yahoo Finance (equities, forex, crypto), CoinGecko (stablecoins), mempool.space (BTC hashrate), alternative.me (Fear & Greed)                  |
+| **Market APIs**       | Yahoo Finance (equities, forex, crypto), CoinGecko (stablecoins), mempool.space (BTC hashpower), alternative.me (Fear & Greed)                  |
 | **Threat Intel APIs** | abuse.ch (Feodo Tracker, URLhaus), AlienVault OTX, AbuseIPDB, C2IntelFeeds                                                                     |
 | **Economic APIs**     | FRED (Federal Reserve), EIA (Energy), Finnhub (stock quotes)                                                                                   |
 | **Localization**      | i18next (16 languages: en, fr, de, es, it, pl, pt, nl, sv, ru, ar, zh, ja, tr, th, vi), RTL support, lazy-loaded bundles, native-language feeds for 7 locales |

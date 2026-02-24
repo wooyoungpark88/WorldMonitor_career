@@ -1115,7 +1115,7 @@
         "flow": "フロー",
         "regime": "市場環境",
         "btcTrend": "BTCトレンド",
-        "hashRate": "Hash Rate",
+        "hashPower": "Hash Power",
         "mining": "マイニング",
         "fearGreed": "恐怖 &amp; 貪欲"
       }

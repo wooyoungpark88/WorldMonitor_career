@@ -39,7 +39,7 @@ function buildFallbackResult(): GetMacroSignalsResponse {
       flowStructure: { status: 'UNKNOWN' },
       macroRegime: { status: 'UNKNOWN' },
       technicalTrend: { status: 'UNKNOWN', sparkline: [] },
-      hashRate: { status: 'UNKNOWN' },
+      hashPower: { status: 'UNKNOWN' },
       miningCost: { status: 'UNKNOWN' },
       fearGreed: { status: 'UNKNOWN', history: [] },
     },
@@ -122,7 +122,7 @@ async function computeMacroSignals(): Promise<GetMacroSignalsResponse> {
     mayerMultiple = +(btcCurrent / btcSma200).toFixed(2);
   }
 
-  // 5. Hash Rate
+  // 5. Hash Power
   let hashStatus = 'UNKNOWN';
   let hashChange: number | null = null;
   if (mempoolHash.status === 'fulfilled') {
@@ -137,7 +137,7 @@ async function computeMacroSignals(): Promise<GetMacroSignalsResponse> {
     }
   }
 
-  // 6. Mining Cost (hashrate-based model)
+  // 6. Mining Cost (hashpower-based model)
   let miningStatus = 'UNKNOWN';
   if (btcCurrent && hashChange !== null) {
     miningStatus = btcCurrent > 60000 ? 'PROFITABLE' : btcCurrent > 40000 ? 'TIGHT' : 'SQUEEZE';
@@ -171,7 +171,7 @@ async function computeMacroSignals(): Promise<GetMacroSignalsResponse> {
     { name: 'Flow Structure', status: flowStatus, bullish: flowStatus === 'ALIGNED' },
     { name: 'Macro Regime', status: regimeStatus, bullish: regimeStatus === 'RISK-ON' },
     { name: 'Technical Trend', status: trendStatus, bullish: trendStatus === 'BULLISH' },
-    { name: 'Hash Rate', status: hashStatus, bullish: hashStatus === 'GROWING' },
+    { name: 'Hash Power', status: hashStatus, bullish: hashStatus === 'GROWING' },
     { name: 'Mining Cost', status: miningStatus, bullish: miningStatus === 'PROFITABLE' },
     { name: 'Fear & Greed', status: fgLabel, bullish: fgValue !== undefined && fgValue > 50 },
   ];
@@ -220,7 +220,7 @@ async function computeMacroSignals(): Promise<GetMacroSignalsResponse> {
         mayerMultiple: mayerMultiple ?? undefined,
         sparkline: btcSparkline,
       },
-      hashRate: {
+      hashPower: {
         status: hashStatus,
         change30d: hashChange ?? undefined,
       },

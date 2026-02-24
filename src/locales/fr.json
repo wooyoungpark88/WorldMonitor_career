@@ -1029,7 +1029,7 @@
         "flow": "Flux",
         "regime": "Régime",
         "btcTrend": "Tendance BTC",
-        "hashRate": "Hash Rate",
+        "hashPower": "Hash Power",
         "mining": "Minage",
         "fearGreed": "Peur &amp; Avidité"
       }

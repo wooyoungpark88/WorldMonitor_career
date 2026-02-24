@@ -1114,7 +1114,7 @@
         "flow": "Dòng tiền",
         "regime": "Chế độ",
         "btcTrend": "Xu hướng BTC",
-        "hashRate": "Hash Rate",
+        "hashPower": "Hash Power",
         "mining": "Khai thác",
         "fearGreed": "Sợ hãi & Tham lam"
       }
