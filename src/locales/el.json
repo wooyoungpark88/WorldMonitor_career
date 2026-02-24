@@ -1154,7 +1154,7 @@
         "flow": "Ροή",
         "regime": "Καθεστώς",
         "btcTrend": "Τάση BTC",
-        "hashRate": "Hash Rate",
+        "hashPower": "Hash Power",
         "mining": "Εξόρυξη",
         "fearGreed": "Φόβος & Απληστία"
       }

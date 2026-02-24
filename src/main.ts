@@ -1,7 +1,6 @@
 import './styles/main.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import * as Sentry from '@sentry/browser';
-import { inject } from '@vercel/analytics';
 import { App } from './App';
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN?.trim();
@@ -11,7 +10,7 @@ Sentry.init({
   dsn: sentryDsn || undefined,
   release: `worldmonitor@${__APP_VERSION__}`,
   environment: location.hostname === 'worldmonitor.app' ? 'production'
-    : location.hostname.includes('vercel.app') ? 'preview'
+    : location.hostname.includes('railway.app') ? 'preview'
     : 'development',
   enabled: Boolean(sentryDsn) && !location.hostname.startsWith('localhost') && !('__TAURI_INTERNALS__' in window),
   sendDefaultPii: true,
@@ -126,9 +125,6 @@ import { clearChunkReloadGuard, installChunkReloadGuard } from '@/bootstrap/chun
 
 // Auto-reload on stale chunk 404s after deployment (Vite fires this for modulepreload failures).
 const chunkReloadStorageKey = installChunkReloadGuard(__APP_VERSION__);
-
-// Initialize Vercel Analytics
-inject();
 
 // Initialize PostHog product analytics
 void initAnalytics();

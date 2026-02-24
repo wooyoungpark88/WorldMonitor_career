@@ -1,11 +1,9 @@
 /**
- * Vercel edge function for sebuf RPC routes.
+ * Sebuf RPC gateway for all domain services.
  *
- * Matches /api/{domain}/v1/{rpc} via Vercel dynamic segment routing.
+ * Matches /api/{domain}/v1/{rpc} via file-system routing.
  * CORS headers are applied to every response (200, 204, 403, 404).
  */
-
-export const config = { runtime: 'edge' };
 
 import { createRouter } from '../../../server/router';
 import { getCorsHeaders, isDisallowedOrigin } from '../../../server/cors';

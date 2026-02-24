@@ -5,9 +5,9 @@ declare const process: { env: Record<string, string | undefined> };
  * share the same Upstash Redis instance (M-6 fix).
  */
 function getKeyPrefix(): string {
-  const env = process.env.VERCEL_ENV; // 'production' | 'preview' | 'development'
+  const env = process.env.RAILWAY_ENVIRONMENT; // 'production' | 'staging' | etc.
   if (!env || env === 'production') return '';
-  const sha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) || 'dev';
+  const sha = process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 8) || 'dev';
   return `${env}:${sha}:`;
 }
 

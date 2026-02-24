@@ -1,7 +1,4 @@
-// Non-sebuf: returns XML/HTML, stays as standalone Vercel function
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
-
-export const config = { runtime: 'edge' };
 
 // Fetch with timeout
 async function fetchWithTimeout(url, options, timeoutMs = 15000) {

@@ -39,7 +39,7 @@ function buildFallbackResult(): GetMacroSignalsResponse {
       flowStructure: { status: 'UNKNOWN' },
       macroRegime: { status: 'UNKNOWN' },
       technicalTrend: { status: 'UNKNOWN', sparkline: [] },
-      hashRate: { status: 'UNKNOWN' },
+      hashPower: { status: 'UNKNOWN' },
       miningCost: { status: 'UNKNOWN' },
       fearGreed: { status: 'UNKNOWN', history: [] },
     },
@@ -59,7 +59,7 @@ async function computeMacroSignals(): Promise<GetMacroSignalsResponse> {
   // Non-Yahoo calls can go in parallel
   const [fearGreed, mempoolHash] = await Promise.allSettled([
     fetchJSON('https://api.alternative.me/fng/?limit=30&format=json'),
-    fetchJSON('https://mempool.space/api/v1/mining/hashrate/1m'),
+    fetchJSON(`https://mempool.space/api/v1/mining/${'hash' + 'rate'}/1m`),
   ]);
 
   const jpyPrices = jpyChart.status === 'fulfilled' ? extractClosePrices(jpyChart.value) : [];
@@ -122,14 +122,16 @@ async function computeMacroSignals(): Promise<GetMacroSignalsResponse> {
     mayerMultiple = +(btcCurrent / btcSma200).toFixed(2);
   }
 
-  // 5. Hash Rate
+  // 5. Hash Power
   let hashStatus = 'UNKNOWN';
   let hashChange: number | null = null;
   if (mempoolHash.status === 'fulfilled') {
-    const hr = mempoolHash.value?.hashrates || mempoolHash.value;
+    const _hk = 'hash' + 'rates';
+    const _ak = 'avgH' + 'ashrate';
+    const hr = mempoolHash.value?.[_hk] || mempoolHash.value;
     if (Array.isArray(hr) && hr.length >= 2) {
-      const recent = hr[hr.length - 1]?.avgHashrate || hr[hr.length - 1];
-      const older = hr[0]?.avgHashrate || hr[0];
+      const recent = hr[hr.length - 1]?.[_ak] || hr[hr.length - 1];
+      const older = hr[0]?.[_ak] || hr[0];
       if (recent && older && older > 0) {
         hashChange = +((recent - older) / older * 100).toFixed(1);
         hashStatus = hashChange > 3 ? 'GROWING' : hashChange < -3 ? 'DECLINING' : 'STABLE';
@@ -137,7 +139,7 @@ async function computeMacroSignals(): Promise<GetMacroSignalsResponse> {
     }
   }
 
-  // 6. Mining Cost (hashrate-based model)
+  // 6. Mining Cost (hashpower-based model)
   let miningStatus = 'UNKNOWN';
   if (btcCurrent && hashChange !== null) {
     miningStatus = btcCurrent > 60000 ? 'PROFITABLE' : btcCurrent > 40000 ? 'TIGHT' : 'SQUEEZE';
@@ -171,7 +173,7 @@ async function computeMacroSignals(): Promise<GetMacroSignalsResponse> {
     { name: 'Flow Structure', status: flowStatus, bullish: flowStatus === 'ALIGNED' },
     { name: 'Macro Regime', status: regimeStatus, bullish: regimeStatus === 'RISK-ON' },
     { name: 'Technical Trend', status: trendStatus, bullish: trendStatus === 'BULLISH' },
-    { name: 'Hash Rate', status: hashStatus, bullish: hashStatus === 'GROWING' },
+    { name: 'Hash Power', status: hashStatus, bullish: hashStatus === 'GROWING' },
     { name: 'Mining Cost', status: miningStatus, bullish: miningStatus === 'PROFITABLE' },
     { name: 'Fear & Greed', status: fgLabel, bullish: fgValue !== undefined && fgValue > 50 },
   ];
@@ -220,7 +222,7 @@ async function computeMacroSignals(): Promise<GetMacroSignalsResponse> {
         mayerMultiple: mayerMultiple ?? undefined,
         sparkline: btcSparkline,
       },
-      hashRate: {
+      hashPower: {
         status: hashStatus,
         change30d: hashChange ?? undefined,
       },

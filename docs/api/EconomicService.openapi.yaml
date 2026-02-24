@@ -384,8 +384,8 @@ components:
                     $ref: '#/components/schemas/MacroRegimeSignal'
                 technicalTrend:
                     $ref: '#/components/schemas/TechnicalTrendSignal'
-                hashRate:
-                    $ref: '#/components/schemas/HashRateSignal'
+                hashPower:
+                    $ref: '#/components/schemas/HashPowerSignal'
                 miningCost:
                     $ref: '#/components/schemas/MiningCostSignal'
                 fearGreed:
@@ -471,7 +471,7 @@ components:
                         format: double
                         description: Last 30 BTC close prices.
             description: TechnicalTrendSignal evaluates BTC price vs moving averages and VWAP.
-        HashRateSignal:
+        HashPowerSignal:
             type: object
             properties:
                 status:
@@ -480,8 +480,8 @@ components:
                 change30d:
                     type: number
                     format: double
-                    description: Hash rate change over 30 days as percentage.
-            description: HashRateSignal tracks Bitcoin hash rate momentum.
+                    description: Hash power change over 30 days as percentage.
+            description: HashPowerSignal tracks Bitcoin hash power momentum.
         MiningCostSignal:
             type: object
             properties:

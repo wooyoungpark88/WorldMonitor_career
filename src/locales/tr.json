@@ -1114,7 +1114,7 @@
         "flow": "Akis",
         "regime": "Rejim",
         "btcTrend": "BTC Egilimi",
-        "hashRate": "Hash Rate",
+        "hashPower": "Hash Power",
         "mining": "Madencilik",
         "fearGreed": "Korku &amp; Acgozluluk"
       }

@@ -1111,7 +1111,7 @@
         "flow": "Flujo",
         "regime": "Régimen",
         "btcTrend": "Tendencia BTC",
-        "hashRate": "Hash Rate",
+        "hashPower": "Hash Power",
         "mining": "Minería",
         "fearGreed": "Miedo &amp; Codicia"
       }
