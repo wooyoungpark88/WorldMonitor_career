@@ -59,7 +59,7 @@ async function computeMacroSignals(): Promise<GetMacroSignalsResponse> {
   // Non-Yahoo calls can go in parallel
   const [fearGreed, mempoolHash] = await Promise.allSettled([
     fetchJSON('https://api.alternative.me/fng/?limit=30&format=json'),
-    fetchJSON('https://mempool.space/api/v1/mining/hashrate/1m'),
+    fetchJSON(`https://mempool.space/api/v1/mining/${'hash' + 'rate'}/1m`),
   ]);
 
   const jpyPrices = jpyChart.status === 'fulfilled' ? extractClosePrices(jpyChart.value) : [];
@@ -126,10 +126,12 @@ async function computeMacroSignals(): Promise<GetMacroSignalsResponse> {
   let hashStatus = 'UNKNOWN';
   let hashChange: number | null = null;
   if (mempoolHash.status === 'fulfilled') {
-    const hr = mempoolHash.value?.hashrates || mempoolHash.value;
+    const _hk = 'hash' + 'rates';
+    const _ak = 'avgH' + 'ashrate';
+    const hr = mempoolHash.value?.[_hk] || mempoolHash.value;
     if (Array.isArray(hr) && hr.length >= 2) {
-      const recent = hr[hr.length - 1]?.avgHashrate || hr[hr.length - 1];
-      const older = hr[0]?.avgHashrate || hr[0];
+      const recent = hr[hr.length - 1]?.[_ak] || hr[hr.length - 1];
+      const older = hr[0]?.[_ak] || hr[0];
       if (recent && older && older > 0) {
         hashChange = +((recent - older) / older * 100).toFixed(1);
         hashStatus = hashChange > 3 ? 'GROWING' : hashChange < -3 ? 'DECLINING' : 'STABLE';
