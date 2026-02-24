@@ -1,0 +1,37 @@
+# Railway deploys only the ais-relay service (scripts/).
+# Exclude everything else to avoid false-positive banned-dependency detection
+# ("hash rate" in Bitcoin monitoring code is flagged as crypto-mining).
+
+# Source & frontend
+src/
+src-tauri/
+public/
+index.html
+live-channels.html
+settings.html
+vite.config.ts
+tsconfig.json
+tsconfig.api.json
+playwright.config.ts
+middleware.ts
+
+# Server / API (Vercel-deployed, not Railway)
+server/
+api/
+convex/
+
+# Documentation & metadata
+docs/
+proto/
+data/
+deploy/
+e2e/
+tests/
+*.md
+LICENSE
+Makefile
+new-world-monitor.png
+
+# Config files not needed for ais-relay
+vercel.json
+package-lock.json
