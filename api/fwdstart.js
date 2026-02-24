@@ -1,6 +1,4 @@
-// Non-sebuf: returns XML/HTML, stays as standalone Vercel function
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
-export const config = { runtime: 'edge' };
 
 // Scrape FwdStart newsletter archive and return as RSS
 export default async function handler(req) {

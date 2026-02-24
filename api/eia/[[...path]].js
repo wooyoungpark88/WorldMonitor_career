@@ -1,7 +1,6 @@
 // EIA (Energy Information Administration) API proxy
 // Keeps API key server-side
 import { getCorsHeaders, isDisallowedOrigin } from '../_cors.js';
-export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
   const cors = getCorsHeaders(req);

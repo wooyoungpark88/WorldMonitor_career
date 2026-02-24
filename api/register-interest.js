@@ -1,5 +1,3 @@
-export const config = { runtime: 'edge' };
-
 import { ConvexHttpClient } from 'convex/browser';
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
 

@@ -1,5 +1,3 @@
-export const config = { runtime: 'edge' };
-
 function parseFlag(value, fallback = '1') {
   if (value === '0' || value === '1') return value;
   return fallback;
@@ -12,8 +10,7 @@ function sanitizeVideoId(value) {
 
 const ALLOWED_ORIGINS = [
   /^https:\/\/(.*\.)?worldmonitor\.app$/,
-  /^https:\/\/worldmonitor-[a-z0-9-]+-elie-habib-projects\.vercel\.app$/,
-  /^https:\/\/worldmonitor-[a-z0-9-]+\.vercel\.app$/,
+  /^https:\/\/.*\.up\.railway\.app$/,
   /^https?:\/\/localhost(:\d+)?$/,
   /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
   /^tauri:\/\/localhost$/,
