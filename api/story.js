@@ -1,4 +1,3 @@
-// Non-sebuf: returns XML/HTML, stays as standalone Vercel function
 /**
  * Story Page for Social Crawlers
  * Returns HTML with proper og:image and twitter:card meta tags.
@@ -15,25 +14,23 @@ const COUNTRY_NAMES = {
 
 const BOT_UA = /twitterbot|facebookexternalhit|linkedinbot|slackbot|telegrambot|whatsapp|discordbot|redditbot|googlebot/i;
 
-export default function handler(req, res) {
-  const url = new URL(req.url, `https://${req.headers.host}`);
+export default function handler(req) {
+  const url = new URL(req.url);
   const countryCode = (url.searchParams.get('c') || '').toUpperCase();
   const type = url.searchParams.get('t') || 'ciianalysis';
   const ts = url.searchParams.get('ts') || '';
   const score = url.searchParams.get('s') || '';
   const level = url.searchParams.get('l') || '';
 
-  const ua = req.headers['user-agent'] || '';
+  const ua = req.headers.get('user-agent') || '';
   const isBot = BOT_UA.test(ua);
 
-  const baseUrl = `https://${req.headers.host}`;
+  const baseUrl = `${url.protocol}//${url.host}`;
   const spaUrl = `${baseUrl}/?c=${countryCode}&t=${type}${ts ? `&ts=${ts}` : ''}`;
 
   // Real users → redirect to SPA
   if (!isBot) {
-    res.writeHead(302, { Location: spaUrl });
-    res.end();
-    return;
+    return new Response(null, { status: 302, headers: { Location: spaUrl } });
   }
 
   // Bots → serve meta tags
@@ -75,9 +72,13 @@ export default function handler(req, res) {
 </body>
 </html>`;
 
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=60');
-  res.status(200).send(html);
+  return new Response(html, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'public, max-age=300, stale-while-revalidate=60',
+    },
+  });
 }
 
 function esc(str) {

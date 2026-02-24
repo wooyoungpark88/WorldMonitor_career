@@ -71,8 +71,8 @@ describe('redis caching behavior', { concurrency: 1 }, () => {
     const restoreEnv = withEnv({
       UPSTASH_REDIS_REST_URL: 'https://redis.test',
       UPSTASH_REDIS_REST_TOKEN: 'token',
-      VERCEL_ENV: undefined,
-      VERCEL_GIT_COMMIT_SHA: undefined,
+      RAILWAY_ENVIRONMENT: undefined,
+      RAILWAY_GIT_COMMIT_SHA: undefined,
     });
     const originalFetch = globalThis.fetch;
 
@@ -122,8 +122,8 @@ describe('redis caching behavior', { concurrency: 1 }, () => {
     const restoreEnv = withEnv({
       UPSTASH_REDIS_REST_URL: 'https://redis.test',
       UPSTASH_REDIS_REST_TOKEN: 'token',
-      VERCEL_ENV: undefined,
-      VERCEL_GIT_COMMIT_SHA: undefined,
+      RAILWAY_ENVIRONMENT: undefined,
+      RAILWAY_GIT_COMMIT_SHA: undefined,
     });
     const originalFetch = globalThis.fetch;
 
@@ -223,8 +223,8 @@ describe('military flights bbox behavior', { concurrency: 1 }, () => {
       UPSTASH_REDIS_REST_TOKEN: 'token',
       LOCAL_API_MODE: undefined,
       WS_RELAY_URL: undefined,
-      VERCEL_ENV: undefined,
-      VERCEL_GIT_COMMIT_SHA: undefined,
+      RAILWAY_ENVIRONMENT: undefined,
+      RAILWAY_GIT_COMMIT_SHA: undefined,
     });
     const originalFetch = globalThis.fetch;
 

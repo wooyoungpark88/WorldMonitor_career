@@ -1,30 +1,25 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const vercelConfig = JSON.parse(readFileSync(resolve(__dirname, '../vercel.json'), 'utf-8'));
 const viteConfigSource = readFileSync(resolve(__dirname, '../vite.config.ts'), 'utf-8');
-
-const getCacheHeaderValue = (sourcePath) => {
-  const rule = vercelConfig.headers.find((entry) => entry.source === sourcePath);
-  const header = rule?.headers?.find((item) => item.key.toLowerCase() === 'cache-control');
-  return header?.value ?? null;
-};
+const railwayServerSource = readFileSync(resolve(__dirname, '../railway-server.mjs'), 'utf-8');
 
 describe('deploy/cache configuration guardrails', () => {
-  it('disables caching for HTML entry routes on Vercel', () => {
-    assert.equal(getCacheHeaderValue('/'), 'no-cache, no-store, must-revalidate');
-    assert.equal(getCacheHeaderValue('/index.html'), 'no-cache, no-store, must-revalidate');
+  it('has railway.toml instead of vercel.json', () => {
+    assert.ok(existsSync(resolve(__dirname, '../railway.toml')), 'railway.toml should exist');
+    assert.ok(!existsSync(resolve(__dirname, '../vercel.json')), 'vercel.json should not exist');
   });
 
-  it('keeps immutable caching for hashed static assets', () => {
-    assert.equal(
-      getCacheHeaderValue('/assets/(.*)'),
-      'public, max-age=31536000, immutable'
-    );
+  it('railway server disables caching for HTML entry routes', () => {
+    assert.match(railwayServerSource, /no-cache, no-store, must-revalidate/);
+  });
+
+  it('railway server keeps immutable caching for hashed static assets', () => {
+    assert.match(railwayServerSource, /max-age=31536000, immutable/);
   });
 
   it('keeps PWA precache glob free of HTML files', () => {

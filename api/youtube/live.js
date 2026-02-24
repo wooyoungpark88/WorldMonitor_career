@@ -3,10 +3,6 @@
 
 import { getCorsHeaders, isDisallowedOrigin } from '../_cors.js';
 
-export const config = {
-  runtime: 'edge',
-};
-
 export default async function handler(request) {
   const cors = getCorsHeaders(request);
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });

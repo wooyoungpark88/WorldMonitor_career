@@ -1,4 +1,3 @@
-// Non-sebuf: returns XML/HTML, stays as standalone Vercel function
 /**
  * Dynamic OG Image Generator for Story Sharing
  * Returns an SVG image (1200x630) — rich intelligence card for social previews.
@@ -30,8 +29,8 @@ function normalizeLevel(rawLevel) {
   return Object.prototype.hasOwnProperty.call(LEVEL_COLORS, level) ? level : 'normal';
 }
 
-export default function handler(req, res) {
-  const url = new URL(req.url, `https://${req.headers.host}`);
+export default function handler(req) {
+  const url = new URL(req.url);
   const countryCode = (url.searchParams.get('c') || '').toUpperCase();
   const type = url.searchParams.get('t') || 'ciianalysis';
   const score = url.searchParams.get('s');
@@ -220,9 +219,13 @@ export default function handler(req, res) {
     >worldmonitor.app · ${dateStr} · Free &amp; open source</text>
 </svg>`;
 
-  res.setHeader('Content-Type', 'image/svg+xml');
-  res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600');
-  res.status(200).send(svg);
+  return new Response(svg, {
+    status: 200,
+    headers: {
+      'Content-Type': 'image/svg+xml',
+      'Cache-Control': 'public, max-age=3600, stale-while-revalidate=600',
+    },
+  });
 }
 
 function escapeXml(str) {
