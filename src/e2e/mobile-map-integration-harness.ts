@@ -120,6 +120,10 @@ const layers = {
   centralBanks: false,
   commodityHubs: false,
   gulfInvestments: false,
+  careFacilities: false,
+  roboticsLabs: false,
+  policyEvents: false,
+  careStartups: false,
 };
 
 await initI18n();

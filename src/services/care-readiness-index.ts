@@ -163,7 +163,7 @@ export function adjustCareReadiness(
   const components = { ...baseline.components };
   for (const [key, value] of Object.entries(adjustments)) {
     if (key in components && typeof value === 'number') {
-      (components as Record<string, number>)[key] = Math.max(0, Math.min(100, (components as Record<string, number>)[key] + value));
+      (components as Record<string, number>)[key] = Math.max(0, Math.min(100, ((components as Record<string, number>)[key] ?? 0) + value));
     }
   }
 
