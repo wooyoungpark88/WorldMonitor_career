@@ -1,10 +1,10 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 @import './lang-switcher.css';
 @import './rtl-overrides.css';
 @import './panels.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* ============================================================
    Theme Colors — overridden by [data-theme="light"] below
