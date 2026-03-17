@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @import './lang-switcher.css';
 @import './rtl-overrides.css';
 @import './panels.css';

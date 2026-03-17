@@ -1,4 +1,5 @@
 import { defineConfig, type Plugin } from 'vite';
+import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { resolve, dirname, extname } from 'path';
 import { mkdir, readFile, writeFile } from 'fs/promises';
@@ -506,6 +507,7 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   plugins: [
+    react(),
     htmlVariantPlugin(),
     polymarketPlugin(),
     youtubeLivePlugin(),
