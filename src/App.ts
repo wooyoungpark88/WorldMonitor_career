@@ -81,9 +81,10 @@ import {
   PopulationExposurePanel,
   InvestmentsPanel,
   LanguageSelector,
-  BOSPanel,
-  SROIPanel,
-  PricingBenchmarkPanel,
+  MarketPulsePanel,
+  OpportunityRadarPanel,
+  FinancialGymPanel,
+  DailyBriefPanel,
 } from '@/components';
 import type { SearchResult } from '@/components/SearchModal';
 import { collectStoryData } from '@/services/story-data';
@@ -2404,14 +2405,17 @@ export class App {
 
     // Care Variant Panels
     if (SITE_VARIANT === 'care') {
-      const bosPanel = new BOSPanel();
-      this.panels['bos'] = bosPanel;
+      const marketPulsePanel = new MarketPulsePanel();
+      this.panels['marketPulse'] = marketPulsePanel;
 
-      const sroiPanel = new SROIPanel();
-      this.panels['sroi'] = sroiPanel;
+      const opportunityRadarPanel = new OpportunityRadarPanel();
+      this.panels['opportunityRadar'] = opportunityRadarPanel;
 
-      const pricingPanel = new PricingBenchmarkPanel();
-      this.panels['pricing'] = pricingPanel;
+      const financialGymPanel = new FinancialGymPanel();
+      this.panels['financialGym'] = financialGymPanel;
+
+      const dailyBriefPanel = new DailyBriefPanel();
+      this.panels['dailyBrief'] = dailyBriefPanel;
     }
 
     const liveNewsPanel = new LiveNewsPanel();

@@ -402,17 +402,10 @@ const FINANCE_MOBILE_MAP_LAYERS: MapLayers = {
 // CARE VARIANT (AI Care/Welfare)
 // ============================================
 const CARE_PANELS: Record<string, PanelConfig> = {
-  map: { name: 'Care Intelligence Map', enabled: true, priority: 1 },
-  'live-news': { name: 'Care Headlines', enabled: true, priority: 1 },
-  insights: { name: 'AI Care Insights', enabled: true, priority: 1 },
-  bos: { name: 'Business Opportunity Score (BOS)', enabled: true, priority: 1 },
-  sroi: { name: 'SROI Memo Practice', enabled: true, priority: 1 },
-  pricing: { name: 'Pricing Benchmark', enabled: true, priority: 1 },
-  careTech: { name: 'Care Tech', enabled: true, priority: 1 },
-  impactFunding: { name: 'Impact & Funding', enabled: true, priority: 1 },
-  publicProcurement: { name: 'Public Procurement', enabled: true, priority: 1 },
-  competitorIntelligence: { name: 'Competitor Intelligence', enabled: true, priority: 1 },
-  monitors: { name: 'My Monitors', enabled: true, priority: 2 },
+  marketPulse: { name: 'Market Pulse', enabled: true, priority: 1 },
+  opportunityRadar: { name: 'Opportunity Radar', enabled: true, priority: 1 },
+  financialGym: { name: 'Financial Gym', enabled: true, priority: 1 },
+  dailyBrief: { name: 'Daily Brief', enabled: true, priority: 1 },
 };
 
 const CARE_MAP_LAYERS: MapLayers = {

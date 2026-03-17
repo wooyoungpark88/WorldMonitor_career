@@ -41,3 +41,7 @@ export * from './LanguageSelector';
 export * from './BOSPanel';
 export * from './SROIPanel';
 export * from './PricingBenchmarkPanel';
+export * from './MarketPulsePanel';
+export * from './OpportunityRadarPanel';
+export * from './FinancialGymPanel';
+export * from './DailyBriefPanel';
