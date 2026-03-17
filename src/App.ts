@@ -81,6 +81,9 @@ import {
   PopulationExposurePanel,
   InvestmentsPanel,
   LanguageSelector,
+  BOSPanel,
+  SROIPanel,
+  PricingBenchmarkPanel,
 } from '@/components';
 import type { SearchResult } from '@/components/SearchModal';
 import { collectStoryData } from '@/services/story-data';
@@ -2395,6 +2398,18 @@ export class App {
         focusInvestmentOnMap(this.map, this.mapLayers, inv.lat, inv.lon);
       });
       this.panels['gcc-investments'] = investmentsPanel;
+    }
+
+    // Care Variant Panels
+    if (SITE_VARIANT === 'care') {
+      const bosPanel = new BOSPanel();
+      this.panels['bos'] = bosPanel;
+
+      const sroiPanel = new SROIPanel();
+      this.panels['sroi'] = sroiPanel;
+
+      const pricingPanel = new PricingBenchmarkPanel();
+      this.panels['pricing'] = pricingPanel;
     }
 
     const liveNewsPanel = new LiveNewsPanel();

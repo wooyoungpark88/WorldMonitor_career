@@ -38,3 +38,6 @@ export * from './ClimateAnomalyPanel';
 export * from './PopulationExposurePanel';
 export * from './InvestmentsPanel';
 export * from './LanguageSelector';
+export * from './BOSPanel';
+export * from './SROIPanel';
+export * from './PricingBenchmarkPanel';
