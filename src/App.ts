@@ -1382,8 +1382,8 @@ export class App {
         subtitle: `${a.type} • ${a.city}, ${a.country}${a.notable ? ` • ${a.notable.slice(0, 2).join(', ')}` : ''}`,
         data: a,
       })));
-    } else {
-      // Full variant: geopolitical sources
+    } else if (SITE_VARIANT !== 'care') {
+      // Full/Finance variant: geopolitical sources
       this.searchModal.registerSource('hotspot', INTEL_HOTSPOTS.map(h => ({
         id: h.id,
         title: h.name,
@@ -1868,7 +1868,7 @@ export class App {
     this.container.innerHTML = `
       <div class="header">
         <div class="header-left">
-          <div class="variant-switcher">
+          <div class="variant-switcher" \${SITE_VARIANT === 'care' ? 'style="display: none !important;"' : ''}>
             <a href="${this.isDesktopApp ? '#' : (SITE_VARIANT === 'full' ? '#' : 'https://worldmonitor.app')}"
                class="variant-option ${SITE_VARIANT === 'full' ? 'active' : ''}"
                data-variant="full"
@@ -1917,7 +1917,7 @@ export class App {
             <span class="status-dot"></span>
             <span>${t('header.live')}</span>
           </div>
-          <div class="region-selector">
+          <div class="region-selector" \${SITE_VARIANT === 'care' ? 'style="display: none !important;"' : ''}>
             <select id="regionSelect" class="region-select">
               <option value="global">${t('components.deckgl.views.global')}</option>
               <option value="america">${t('components.deckgl.views.americas')}</option>
@@ -1944,7 +1944,7 @@ export class App {
         </div>
       </div>
       <div class="main-content">
-        <div class="map-section" id="mapSection">
+        <div class="map-section" id="mapSection" \${SITE_VARIANT === 'care' ? 'style="display: none !important;"' : ''}>
           <div class="panel-header">
             <div class="panel-header-left">
               <span class="panel-title">${SITE_VARIANT === 'tech' ? t('panels.techMap') : SITE_VARIANT === 'care' ? 'Care Intelligence Map' : t('panels.map')}</span>
@@ -1997,6 +1997,8 @@ export class App {
    * Render critical military posture banner when buildup detected
    */
   private renderCriticalBanner(postures: TheaterPostureSummary[]): void {
+    if (SITE_VARIANT === 'care') return;
+
     if (this.isMobile) {
       if (this.criticalBannerEl) {
         this.criticalBannerEl.remove();
