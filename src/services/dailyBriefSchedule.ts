@@ -5,12 +5,16 @@
 
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
+export type StudyTool = 'financial' | 'pricing' | 'sroi' | 'pitch' | 'weekly';
+
 export interface ScheduleItem {
   id: string;
   label: string;
   duration: string;
   type: 'morning' | 'lunch' | 'evening';
   route?: string;
+  /** study 페이지에서 열 도구 (route가 /study일 때) */
+  tool?: StudyTool;
   description: string;
 }
 
@@ -33,6 +37,7 @@ const WEEKLY_SCHEDULE: Record<number, Omit<DailySchedule, 'dayOfWeek' | 'dayName
       duration: '30분',
       type: 'morning',
       route: '/study',
+      tool: 'financial',
       description: 'Financial Gym — 오늘의 기업 카드, 3행 메모 (Revenue/Cost/Moat)',
     },
     lunch: {
@@ -41,6 +46,7 @@ const WEEKLY_SCHEDULE: Record<number, Omit<DailySchedule, 'dayOfWeek' | 'dayName
       duration: '20분',
       type: 'lunch',
       route: '/study',
+      tool: 'pricing',
       description: '경쟁사 가격 모델 비교, CareVia/호시담 가격 인사이트',
     },
     evening: {
@@ -49,6 +55,7 @@ const WEEKLY_SCHEDULE: Record<number, Omit<DailySchedule, 'dayOfWeek' | 'dayName
       duration: '10분',
       type: 'evening',
       route: '/study',
+      tool: 'sroi',
       description: '오늘 업무 1건을 SROI 계산기로 환산',
     },
   },
@@ -59,6 +66,7 @@ const WEEKLY_SCHEDULE: Record<number, Omit<DailySchedule, 'dayOfWeek' | 'dayName
       duration: '30분',
       type: 'morning',
       route: '/study',
+      tool: 'financial',
       description: 'Financial Gym — 두 번째 기업 카드',
     },
     lunch: {
@@ -75,6 +83,7 @@ const WEEKLY_SCHEDULE: Record<number, Omit<DailySchedule, 'dayOfWeek' | 'dayName
       duration: '10분',
       type: 'evening',
       route: '/study',
+      tool: 'sroi',
       description: '오늘 업무 1건 SROI 환산',
     },
   },
@@ -93,6 +102,7 @@ const WEEKLY_SCHEDULE: Record<number, Omit<DailySchedule, 'dayOfWeek' | 'dayName
       duration: '20분',
       type: 'lunch',
       route: '/study',
+      tool: 'pitch',
       description: 'YC Demo Day, a16z Bio+Health — 서사 구조/숫자 배치 분석',
     },
     evening: {
@@ -101,6 +111,7 @@ const WEEKLY_SCHEDULE: Record<number, Omit<DailySchedule, 'dayOfWeek' | 'dayName
       duration: '10분',
       type: 'evening',
       route: '/study',
+      tool: 'pitch',
       description: '오늘 현장에서 있었던 일 1건을 스토리로 기록',
     },
   },
@@ -127,6 +138,7 @@ const WEEKLY_SCHEDULE: Record<number, Omit<DailySchedule, 'dayOfWeek' | 'dayName
       duration: '10분',
       type: 'evening',
       route: '/study',
+      tool: 'sroi',
       description: '오늘 업무 1건 SROI 환산',
     },
   },
@@ -137,6 +149,7 @@ const WEEKLY_SCHEDULE: Record<number, Omit<DailySchedule, 'dayOfWeek' | 'dayName
       duration: '30분',
       type: 'morning',
       route: '/study',
+      tool: 'financial',
       description: '이번 주 재무메모, SROI, 시장 시그널 요약',
     },
     lunch: {
@@ -145,6 +158,7 @@ const WEEKLY_SCHEDULE: Record<number, Omit<DailySchedule, 'dayOfWeek' | 'dayName
       duration: '20분',
       type: 'lunch',
       route: '/study',
+      tool: 'pricing',
       description: '이번 주 학습을 실무 적용 아이디어로 정리',
     },
     evening: {
@@ -153,6 +167,7 @@ const WEEKLY_SCHEDULE: Record<number, Omit<DailySchedule, 'dayOfWeek' | 'dayName
       duration: '10분',
       type: 'evening',
       route: '/study',
+      tool: 'weekly',
       description: '금요일 주간 정리 5질문 작성',
     },
   },

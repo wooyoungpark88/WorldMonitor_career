@@ -26,6 +26,7 @@ interface StudyState {
   completedSessions: CompletedSession[];
   setSessionStep: (step: number) => void;
   startSession: (sessionType: string) => void;
+  clearSession: () => void;
   endSession: () => void;
   updateMyAnswer: (answer: string) => void;
   updateInsight: (insight: string) => void;
@@ -49,6 +50,8 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       startedAt: new Date().toISOString(),
     }
   }),
+
+  clearSession: () => set({ currentSession: null }),
 
   endSession: () => {
     const state = get();

@@ -42,30 +42,7 @@ function toCSVRow(record: SROIExportRecord): string {
   ].join(',');
 }
 
-/**
- * insights 테이블에서 SROI 세션 조회 후 CSV 다운로드
- */
-export async function exportSROIToCSV(filename = 'care radar-sroi-export'): Promise<void> {
-  const { data, error } = await supabase
-    .from('insights')
-    .select('id, session_type, my_answer, insight_text, completed_at')
-    .eq('session_type', 'sroi')
-    .order('completed_at', { ascending: false });
-
-  if (error) {
-    console.error('[Export] Failed to fetch SROI data:', error);
-    throw new Error('SROI 데이터를 불러올 수 없습니다.');
-  }
-
-  const records: SROIExportRecord[] = (data ?? []).map((row: Record<string, string>) => ({
-    id: row.id ?? '',
-    date: row.completed_at?.slice(0, 10) ?? '',
-    session_type: row.session_type ?? 'sroi',
-    my_answer: row.my_answer ?? '',
-    insight: row.insight_text ?? '',
-    completed_at: row.completed_at ?? '',
-  }));
-
+function recordsToCSV(records: SROIExportRecord[], filename: string): void {
   const header = 'id,date,title,session_type,my_answer,insight,completed_at';
   const rows = records.map(toCSVRow);
   const csv = [header, ...rows].join('\n');
@@ -79,38 +56,95 @@ export async function exportSROIToCSV(filename = 'care radar-sroi-export'): Prom
 }
 
 /**
- * 모든 insights (재무, 프라이싱, SROI, 피칭) CSV 내보내기
+ * insights 테이블 또는 localStorage에서 SROI 세션 조회 후 CSV 다운로드
  */
-export async function exportAllInsightsToCSV(filename = 'care radar-insights-export'): Promise<void> {
-  const { data, error } = await supabase
-    .from('insights')
-    .select('id, session_type, my_answer, insight_text, completed_at')
-    .order('completed_at', { ascending: false });
+export async function exportSROIToCSV(filename = 'care radar-sroi-export'): Promise<void> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+  let records: SROIExportRecord[] = [];
 
-  if (error) {
-    console.error('[Export] Failed to fetch insights:', error);
-    throw new Error('데이터를 불러올 수 없습니다.');
+  if (supabaseUrl) {
+    const { data, error } = await supabase
+      .from('insights')
+      .select('id, session_type, my_answer, insight_text, completed_at')
+      .eq('session_type', 'sroi')
+      .order('completed_at', { ascending: false });
+
+    if (!error && data?.length) {
+      records = data.map((row: Record<string, string>) => ({
+        id: row.id ?? '',
+        date: row.completed_at?.slice(0, 10) ?? '',
+        session_type: row.session_type ?? 'sroi',
+        my_answer: row.my_answer ?? '',
+        insight: row.insight_text ?? '',
+        completed_at: row.completed_at ?? '',
+      }));
+    }
   }
 
-  const records: SROIExportRecord[] = (data ?? []).map((row: Record<string, string>) => ({
-    id: row.id ?? '',
-    date: row.completed_at?.slice(0, 10) ?? '',
-    session_type: row.session_type ?? 'unknown',
-    my_answer: row.my_answer ?? '',
-    insight: row.insight_text ?? '',
-    completed_at: row.completed_at ?? '',
-  }));
+  if (records.length === 0) {
+    const stored = JSON.parse(localStorage.getItem('careradar_sessions') || '[]');
+    records = stored
+      .filter((s: { type: string }) => s.type === 'sroi')
+      .map((s: { id: string; data: { myAnswer: string; insight: string }; completedAt: string }) => ({
+        id: s.id,
+        date: s.completedAt?.slice(0, 10) ?? '',
+        session_type: 'sroi',
+        my_answer: s.data?.myAnswer ?? '',
+        insight: s.data?.insight ?? '',
+        completed_at: s.completedAt ?? '',
+      }))
+      .sort((a: SROIExportRecord, b: SROIExportRecord) =>
+        (b.completed_at || '').localeCompare(a.completed_at || '')
+      );
+  }
 
-  const header = 'id,date,title,session_type,my_answer,insight,completed_at';
-  const rows = records.map(toCSVRow);
-  const csv = [header, ...rows].join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${filename}-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  recordsToCSV(records, filename);
+}
+
+/**
+ * 모든 insights (재무, 프라이싱, SROI, 피칭) CSV 내보내기
+ * Supabase 실패 시 localStorage careradar_sessions 사용
+ */
+export async function exportAllInsightsToCSV(filename = 'care radar-insights-export'): Promise<void> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+  let records: SROIExportRecord[] = [];
+
+  if (supabaseUrl) {
+    const { data, error } = await supabase
+      .from('insights')
+      .select('id, session_type, my_answer, insight_text, completed_at')
+      .order('completed_at', { ascending: false });
+
+    if (!error && data?.length) {
+      records = data.map((row: Record<string, string>) => ({
+        id: row.id ?? '',
+        date: row.completed_at?.slice(0, 10) ?? '',
+        session_type: row.session_type ?? 'unknown',
+        my_answer: row.my_answer ?? '',
+        insight: row.insight_text ?? '',
+        completed_at: row.completed_at ?? '',
+      }));
+    }
+  }
+
+  if (records.length === 0) {
+    const stored = JSON.parse(localStorage.getItem('careradar_sessions') || '[]');
+    records = stored.map(
+      (s: { id: string; type: string; data: { myAnswer: string; insight: string }; completedAt: string }) => ({
+        id: s.id,
+        date: s.completedAt?.slice(0, 10) ?? '',
+        session_type: s.type ?? 'unknown',
+        my_answer: s.data?.myAnswer ?? '',
+        insight: s.data?.insight ?? '',
+        completed_at: s.completedAt ?? '',
+      })
+    );
+    records.sort((a: SROIExportRecord, b: SROIExportRecord) =>
+      (b.completed_at || '').localeCompare(a.completed_at || '')
+    );
+  }
+
+  recordsToCSV(records, filename);
 }
 
 /**

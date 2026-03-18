@@ -3,7 +3,7 @@
  * 5개 필수 질문 폼 + weekly_reviews 저장
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 
 const QUESTIONS = [
@@ -32,6 +32,22 @@ export default function WeeklyReview() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    const { start } = getWeekBounds(new Date());
+    const weekStart = start.toISOString().slice(0, 10);
+    const stored = JSON.parse(localStorage.getItem('careradar_weekly_reviews') || '{}');
+    const prev = stored[weekStart];
+    if (prev) {
+      setAnswers({
+        q1_market_signal: prev.q1_market_signal ?? '',
+        q2_pricing_insight: prev.q2_pricing_insight ?? '',
+        q3_sroi_discovery: prev.q3_sroi_discovery ?? '',
+        q4_next_week_focus: prev.q4_next_week_focus ?? '',
+        q5_applied_in_practice: prev.q5_applied_in_practice ?? '',
+      });
+    }
+  }, []);
+
   const handleChange = (key: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [key]: value }));
   };
@@ -40,7 +56,7 @@ export default function WeeklyReview() {
     setSaving(true);
     try {
       const { start, end } = getWeekBounds(new Date());
-      const { error } = await supabase.from('weekly_reviews').insert({
+      const payload = {
         week_start: start.toISOString().slice(0, 10),
         week_end: end.toISOString().slice(0, 10),
         q1_market_signal: answers.q1_market_signal || null,
@@ -48,11 +64,36 @@ export default function WeeklyReview() {
         q3_sroi_discovery: answers.q3_sroi_discovery || null,
         q4_next_week_focus: answers.q4_next_week_focus || null,
         q5_applied_in_practice: answers.q5_applied_in_practice || null,
-      });
-      if (error) throw error;
+      };
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+      if (supabaseUrl) {
+        const { error } = await supabase.from('weekly_reviews').insert(payload);
+        if (error) throw error;
+      }
+
+      const storageKey = 'careradar_weekly_reviews';
+      const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      stored[payload.week_start] = payload;
+      localStorage.setItem(storageKey, JSON.stringify(stored));
       setSaved(true);
     } catch (e) {
       console.error('Weekly review save error:', e);
+      const { start, end } = getWeekBounds(new Date());
+      const fallbackPayload = {
+        week_start: start.toISOString().slice(0, 10),
+        week_end: end.toISOString().slice(0, 10),
+        q1_market_signal: answers.q1_market_signal || null,
+        q2_pricing_insight: answers.q2_pricing_insight || null,
+        q3_sroi_discovery: answers.q3_sroi_discovery || null,
+        q4_next_week_focus: answers.q4_next_week_focus || null,
+        q5_applied_in_practice: answers.q5_applied_in_practice || null,
+      };
+      const storageKey = 'careradar_weekly_reviews';
+      const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      stored[fallbackPayload.week_start] = fallbackPayload;
+      localStorage.setItem(storageKey, JSON.stringify(stored));
+      setSaved(true);
     } finally {
       setSaving(false);
     }

@@ -69,25 +69,41 @@ export const CARE_KEYWORDS: Record<KeywordCategory, string[]> = {
   ],
 };
 
-const ALL_KEYWORDS = Object.values(CARE_KEYWORDS).flat();
+export interface KeywordMatch {
+  keyword: string;
+  category: KeywordCategory;
+}
 
-function matchKeywords(text: string): string[] {
+function matchKeywordsWithCategory(text: string): KeywordMatch[] {
   const lower = text.toLowerCase();
-  const matched: string[] = [];
+  const seen = new Set<string>();
+  const matches: KeywordMatch[] = [];
 
-  for (const kw of ALL_KEYWORDS) {
-    if (lower.includes(kw.toLowerCase())) {
-      matched.push(kw);
+  for (const [category, keywords] of Object.entries(CARE_KEYWORDS) as [KeywordCategory, string[]][]) {
+    for (const kw of keywords) {
+      if (lower.includes(kw.toLowerCase()) && !seen.has(kw)) {
+        seen.add(kw);
+        matches.push({ keyword: kw, category });
+      }
     }
   }
 
-  return [...new Set(matched)];
+  return matches;
 }
 
 export interface FilteredRssItem extends RssItem {
   keywords_matched: string[];
+  keywordCategories: KeywordMatch[];
   relevance_score: number;
 }
+
+/** KeywordCategory → 한글 라벨 (UI 표시용) */
+export const KEYWORD_CATEGORY_LABELS: Record<KeywordCategory, string> = {
+  market: '시장',
+  bm: 'BM',
+  policy: '정책',
+  investment: '투자',
+};
 
 /**
  * RssItem에 키워드 매칭 및 관련성 점수 적용
@@ -96,7 +112,8 @@ export interface FilteredRssItem extends RssItem {
 export function filterByKeywords(items: RssItem[]): FilteredRssItem[] {
   return items.map((item) => {
     const searchText = `${item.title} ${item.description}`;
-    const keywords_matched = matchKeywords(searchText);
+    const keywordCategories = matchKeywordsWithCategory(searchText);
+    const keywords_matched = keywordCategories.map((m) => m.keyword);
 
     let relevance_score = 50;
     if (keywords_matched.length > 0) {
@@ -106,6 +123,7 @@ export function filterByKeywords(items: RssItem[]): FilteredRssItem[] {
     return {
       ...item,
       keywords_matched,
+      keywordCategories,
       relevance_score,
     };
   });

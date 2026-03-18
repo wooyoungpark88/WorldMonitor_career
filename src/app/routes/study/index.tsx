@@ -10,9 +10,18 @@ import { getTodaySchedule } from '../../../services/dailyBriefSchedule';
 import WeeklyReview from '../../../components/study/WeeklyReview';
 import { exportSROIToCSV } from '../../../services/exportService';
 
+type StudyTab = 'home' | 'financial' | 'pricing' | 'sroi' | 'pitch' | 'weekly';
+
 export default function StudyDashboard() {
   const currentSession = useStudyStore(state => state.currentSession);
-  const [activeTab, setActiveTab] = useState<'home' | 'financial' | 'pricing' | 'sroi' | 'pitch' | 'weekly'>('home');
+  const startSession = useStudyStore(state => state.startSession);
+  const clearSession = useStudyStore(state => state.clearSession);
+  const [activeTab, setActiveTab] = useState<StudyTab>('home');
+
+  const openTool = (tab: 'financial' | 'pricing' | 'sroi' | 'pitch') => {
+    startSession(tab);
+    setActiveTab(tab);
+  };
 
   if (activeTab === 'weekly') {
     return (
@@ -33,7 +42,7 @@ export default function StudyDashboard() {
       <div className="h-full flex flex-col max-w-5xl mx-auto py-2">
         <button 
           onClick={() => {
-            useStudyStore.setState({ currentSession: null });
+            clearSession();
             setActiveTab('home');
           }}
           className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white mb-4 self-start"
@@ -62,23 +71,40 @@ export default function StudyDashboard() {
           오늘의 학습 ({todaySchedule.dayName}요일)
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[todaySchedule.morning, todaySchedule.lunch, todaySchedule.evening].map((item) => (
-            <Link
-              key={item.id}
-              href={item.route ?? '/study'}
-              className="flex flex-col p-4 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
-            >
-              <span className="text-[10px] font-bold uppercase text-gray-400 mb-1">{item.duration}</span>
-              <h4 className="font-bold text-gray-900 dark:text-white mb-1">{item.label}</h4>
-              <p className="text-xs text-gray-500 line-clamp-2">{item.description}</p>
-            </Link>
-          ))}
+          {[todaySchedule.morning, todaySchedule.lunch, todaySchedule.evening].map((item) => {
+            const isTracking = item.route === '/tracking';
+            const handleClick = () => {
+              if (isTracking) return;
+              if (item.tool === 'weekly') {
+                setActiveTab('weekly');
+              } else if (item.tool) {
+                openTool(item.tool);
+              }
+            };
+            const content = (
+              <>
+                <span className="text-[10px] font-bold uppercase text-gray-400 mb-1">{item.duration}</span>
+                <h4 className="font-bold text-gray-900 dark:text-white mb-1">{item.label}</h4>
+                <p className="text-xs text-gray-500 line-clamp-2">{item.description}</p>
+              </>
+            );
+            const className = "flex flex-col p-4 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 transition-colors text-left";
+            return isTracking ? (
+              <Link key={item.id} href="/tracking" className={className}>
+                {content}
+              </Link>
+            ) : (
+              <button key={item.id} onClick={handleClick} className={className}>
+                {content}
+              </button>
+            );
+          })}
         </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <button 
-          onClick={() => setActiveTab('financial')}
+          onClick={() => openTool('financial')}
           className="flex flex-col items-center p-8 bg-white dark:bg-[#141414] border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 rounded-xl transition-all shadow-sm group"
         >
           <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -89,7 +115,7 @@ export default function StudyDashboard() {
         </button>
 
         <button 
-          onClick={() => setActiveTab('pricing')}
+          onClick={() => openTool('pricing')}
           className="flex flex-col items-center p-8 bg-white dark:bg-[#141414] border border-gray-200 dark:border-gray-800 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-xl transition-all shadow-sm group"
         >
           <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -100,7 +126,7 @@ export default function StudyDashboard() {
         </button>
 
         <button 
-          onClick={() => setActiveTab('sroi')}
+          onClick={() => openTool('sroi')}
           className="flex flex-col items-center p-8 bg-white dark:bg-[#141414] border border-gray-200 dark:border-gray-800 hover:border-purple-500 dark:hover:border-purple-500 rounded-xl transition-all shadow-sm group"
         >
           <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -117,6 +143,7 @@ export default function StudyDashboard() {
               alert('내보내기 실패: ' + (e instanceof Error ? e.message : '알 수 없는 오류'));
             }
           }}
+          title="완료한 SROI 세션을 CSV로 다운로드합니다"
           className="flex flex-col items-center p-6 bg-white dark:bg-[#141414] border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 rounded-xl transition-all shadow-sm group"
         >
           <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
@@ -127,7 +154,7 @@ export default function StudyDashboard() {
         </button>
 
         <button 
-          onClick={() => setActiveTab('pitch')}
+          onClick={() => openTool('pitch')}
           className="flex flex-col items-center p-8 bg-white dark:bg-[#141414] border border-gray-200 dark:border-gray-800 hover:border-amber-500 dark:hover:border-amber-500 rounded-xl transition-all shadow-sm group"
         >
           <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
