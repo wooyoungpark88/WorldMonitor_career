@@ -134,14 +134,15 @@ function extractAgencyFromTitle(title: string): string {
 
 /**
  * policy 트랙 뉴스에서 조달 관련 항목 추출 및 적합도 태깅
- * high/medium만 노출 (low 제외), exclusion 키워드 매칭 시 제외
+ * high/medium 우선, low도 "참고" 등급으로 포함 (exclusion 키워드 매칭 시 제외)
  */
 export async function fetchProcurementListings(): Promise<ProcurementListing[]> {
   const items = await fetchAllNews();
   const filtered = filterByKeywords(items);
   const policyItems = filtered.filter((i) => i.track === 'policy') as FilteredRssItem[];
 
-  const listings: ProcurementListing[] = [];
+  const highMed: ProcurementListing[] = [];
+  const low: ProcurementListing[] = [];
   let idx = 0;
 
   for (const item of policyItems) {
@@ -150,10 +151,8 @@ export async function fetchProcurementListings(): Promise<ProcurementListing[]> 
     if (!result) continue;
 
     const { score, reason, matched } = result;
-    if (score === 'low') continue;
-
     const agency = extractAgencyFromTitle(item.title);
-    listings.push({
+    const listing: ProcurementListing = {
       id: `proc-${item.id}-${idx}`,
       title: item.title,
       agency,
@@ -167,10 +166,16 @@ export async function fetchProcurementListings(): Promise<ProcurementListing[]> 
         (k, i, arr) => arr.indexOf(k) === i
       ),
       fetched_at: new Date().toISOString(),
-    });
+    };
+
+    if (score === 'low') {
+      low.push(listing);
+    } else {
+      highMed.push(listing);
+    }
     idx++;
-    if (listings.length >= 15) break;
   }
 
-  return listings;
+  const combined = [...highMed, ...low];
+  return combined.slice(0, 15);
 }

@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 
+export interface ArticleContext {
+  title: string;
+  description: string;
+  link: string;
+  track: string;
+  keywords: string[];
+}
+
 export interface SessionData {
   myAnswer: string;
   insight: string;
@@ -12,6 +20,7 @@ export interface StudySession {
   step: number;
   data: SessionData;
   startedAt: string;
+  articleContext?: ArticleContext;
 }
 
 export interface CompletedSession {
@@ -19,13 +28,14 @@ export interface CompletedSession {
   type: string;
   data: SessionData;
   completedAt: string;
+  articleContext?: ArticleContext;
 }
 
 interface StudyState {
   currentSession: StudySession | null;
   completedSessions: CompletedSession[];
   setSessionStep: (step: number) => void;
-  startSession: (sessionType: string) => void;
+  startSession: (sessionType: string, articleContext?: ArticleContext) => void;
   clearSession: () => void;
   endSession: () => void;
   updateMyAnswer: (answer: string) => void;
@@ -41,13 +51,14 @@ export const useStudyStore = create<StudyState>((set, get) => ({
     currentSession: state.currentSession ? { ...state.currentSession, step } : null
   })),
 
-  startSession: (sessionType) => set({
+  startSession: (sessionType, articleContext) => set({
     currentSession: {
       id: crypto.randomUUID(),
       type: sessionType,
       step: 0,
       data: { myAnswer: '', insight: '' },
       startedAt: new Date().toISOString(),
+      articleContext,
     }
   }),
 
@@ -62,12 +73,12 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       type: state.currentSession.type,
       data: state.currentSession.data,
       completedAt: new Date().toISOString(),
+      articleContext: state.currentSession.articleContext,
     };
     
     const sessions = [...state.completedSessions, completed];
     localStorage.setItem('careradar_sessions', JSON.stringify(sessions));
 
-    // Supabase에 비동기 저장 (실패해도 localStorage 백업 있음)
     supabase.from('insights').insert({
       id: completed.id,
       session_type: completed.type,

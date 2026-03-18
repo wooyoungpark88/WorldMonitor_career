@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useCallback } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Search, Bell, Settings as SettingsIcon, User, Activity, BookOpen, Database } from 'lucide-react';
 
@@ -7,7 +7,8 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
+  const [headerSearch, setHeaderSearch] = useState('');
 
   const navItems = [
     { label: 'Tracking', path: '/tracking', icon: Activity },
@@ -15,6 +16,15 @@ export default function Layout({ children }: LayoutProps) {
     { label: 'Knowledge Base', path: '/knowledge', icon: Database },
     { label: 'Settings', path: '/settings', icon: SettingsIcon },
   ];
+
+  const handleSearch = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && headerSearch.trim()) {
+      if (!location.startsWith('/tracking')) {
+        navigate('/tracking');
+      }
+      window.dispatchEvent(new CustomEvent('careradar:search', { detail: headerSearch }));
+    }
+  }, [headerSearch, location, navigate]);
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-[#0a0f0a] text-gray-900 dark:text-gray-100 font-sans overflow-hidden">
@@ -24,7 +34,7 @@ export default function Layout({ children }: LayoutProps) {
           <Link href="/tracking" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-400">
             CareRadar
           </Link>
-          <span className="ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold bg-emerald-500/10 text-emerald-500 rounded">v3.1</span>
+          <span className="ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold bg-emerald-500/10 text-emerald-500 rounded">v3.2</span>
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
@@ -68,6 +78,9 @@ export default function Layout({ children }: LayoutProps) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input 
                 type="text" 
+                value={headerSearch}
+                onChange={(e) => setHeaderSearch(e.target.value)}
+                onKeyDown={handleSearch}
                 placeholder="Search news, companies, frameworks..." 
                 className="w-full pl-9 pr-4 py-2 bg-gray-100 dark:bg-[#0a0f0a] border-transparent focus:bg-white dark:focus:bg-[#1a1f1a] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-lg text-sm transition-colors dark:text-gray-200 outline-none placeholder:text-gray-500"
               />

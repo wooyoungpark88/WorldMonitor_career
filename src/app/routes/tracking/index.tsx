@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { fetchAllNews } from '../../../services/rssFeed';
 import { filterByKeywords, sortByRelevance, sortByDate, sortByTrack, sortByKeywordCount, KEYWORD_CATEGORY_LABELS, type FilteredRssItem } from '../../../services/keywordFilter';
 import { TRACK_META } from '../../../config/trackConfig';
 import { calculateOpportunityScore } from '../../../services/scoreCalculator';
 import { notifyOpportunityScore } from '../../../services/telegramBot';
 import { useTrackingStore } from '../../../stores/trackingStore';
+import { useArticleStore } from '../../../stores/articleStore';
 import OpportunityGauge from '../../../components/tracking/OpportunityGauge';
-import { ExternalLink, RefreshCw, Loader2, Clock, Newspaper, FileText, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import ArticleDetailModal from '../../../components/tracking/ArticleDetailModal';
+import { ExternalLink, RefreshCw, Loader2, Clock, Newspaper, FileText, HelpCircle, ChevronDown, ChevronUp, Search, Bookmark, BookmarkCheck, Star } from 'lucide-react';
 import { Link } from 'wouter';
 import { fetchProcurementListings, type ProcurementListing } from '../../../services/g2bCrawler';
 import ProcurementRow from '../../../components/tracking/ProcurementRow';
@@ -20,6 +22,10 @@ export default function TrackingDashboard() {
   const [showClassifyHelp, setShowClassifyHelp] = useState(false);
   const [sortBy, setSortBy] = useState<NewsSortBy>('relevance');
   const [trackFilter, setTrackFilter] = useState<TrackType | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [bookmarkOnly, setBookmarkOnly] = useState(false);
+  const [selectedArticle, setSelectedArticle] = useState<FilteredRssItem | null>(null);
+  const annotations = useArticleStore((s) => s.annotations);
 
   const sortedNews = (() => {
     switch (sortBy) {
@@ -30,10 +36,30 @@ export default function TrackingDashboard() {
     }
   })();
 
-  const displayedNews = trackFilter
-    ? sortedNews.filter((n) => n.track === trackFilter)
-    : sortedNews;
+  const displayedNews = useMemo(() => {
+    let result = trackFilter ? sortedNews.filter((n) => n.track === trackFilter) : sortedNews;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((n) => n.title.toLowerCase().includes(q) || n.description.toLowerCase().includes(q));
+    }
+    if (bookmarkOnly) {
+      result = result.filter((n) => annotations[n.id]?.isBookmarked);
+    }
+    return result;
+  }, [sortedNews, trackFilter, searchQuery, bookmarkOnly, annotations]);
+
+  const relatedArticles = useMemo(() => {
+    if (!selectedArticle) return [];
+    const selectedKeywords = new Set((selectedArticle.keywordCategories ?? []).map((k) => k.keyword));
+    if (selectedKeywords.size === 0) return [];
+    return news
+      .filter((n) => n.id !== selectedArticle.id && (n.keywordCategories ?? []).some((k) => selectedKeywords.has(k.keyword)))
+      .slice(0, 5);
+  }, [selectedArticle, news]);
+
   const setOpportunityScores = useTrackingStore((s) => s.setOpportunityScores);
+  const addScoreHistory = useTrackingStore((s) => s.addScoreHistory);
+  const setTopNews = useTrackingStore((s) => s.setTopContributingNews);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -55,9 +81,19 @@ export default function TrackingDashboard() {
         shouldAlert: scoreResult.shouldAlert,
       };
       setOpportunityScores(scores);
+      addScoreHistory({ timestamp: new Date().toISOString(), total: scores.total, s1: scores.s1, s2: scores.s2, s3: scores.s3 });
+
+      const topPolicy = sortByRelevance(filtered.filter((n) => n.track === 'policy')).slice(0, 3);
+      const topInvestment = sortByRelevance(filtered.filter((n) => n.track === 'investment')).slice(0, 3);
+      const topCompetitor = sortByRelevance(filtered.filter((n) => n.track === 'competitor')).slice(0, 3);
+      setTopNews({
+        policy: topPolicy.map((n) => ({ id: n.id, title: n.title, link: n.link })),
+        investment: topInvestment.map((n) => ({ id: n.id, title: n.title, link: n.link })),
+        competitor: topCompetitor.map((n) => ({ id: n.id, title: n.title, link: n.link })),
+      });
 
       if (scoreResult.shouldAlert) {
-        const toTrackNews = (items: FilteredRssItem[]): TrackNewsItem[] =>
+        const toTrackNews = (items: FilteredRssItem[]) =>
           items.map((i) => ({ title: i.title, link: i.link }));
         const newsByTrack = {
           policy: toTrackNews(sortByRelevance(filtered.filter((n) => n.track === 'policy'))),
@@ -80,10 +116,20 @@ export default function TrackingDashboard() {
 
   useEffect(() => {
     loadNews();
-    // 5분마다 자동 새로고침
     const interval = setInterval(loadNews, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const q = (e as CustomEvent).detail;
+      if (typeof q === 'string') setSearchQuery(q);
+    };
+    window.addEventListener('careradar:search', handler);
+    return () => window.removeEventListener('careradar:search', handler);
+  }, []);
+
+  const policyCount = news.filter((n) => n.track === 'policy').length;
 
   return (
     <div className="h-full flex flex-col max-w-7xl mx-auto">
@@ -113,52 +159,74 @@ export default function TrackingDashboard() {
         {/* Left Column — Live News Feed */}
         <div className="lg:col-span-7 flex flex-col gap-4">
           <div className="bg-white dark:bg-[#141414] border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col overflow-hidden flex-1">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-[#1a1f1a]/50 flex-wrap gap-2">
-              <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-2">
-                <Newspaper className="w-4 h-4 text-blue-500" />
-                Live News Feed
-                {trackFilter && (
-                  <span className="text-xs font-normal text-emerald-600 dark:text-emerald-400">
-                    — {TRACK_META[trackFilter].label}만 보기
-                  </span>
-                )}
-                {!loading && (
-                  <span className="text-xs font-normal lowercase text-gray-400">
-                    ({displayedNews.length}{trackFilter ? ` / ${news.length}` : ''} articles)
-                  </span>
-                )}
-              </h2>
-              <div className="flex items-center gap-2">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as NewsSortBy)}
-                  className="text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1f1a] text-gray-700 dark:text-gray-300"
-                >
-                  <option value="date">최신순</option>
-                  <option value="relevance">관련도순</option>
-                  <option value="track">Track별</option>
-                  <option value="keywordCount">키워드 매칭 수</option>
-                </select>
-                <div className="flex items-center gap-2">
+            <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1f1a]/50 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                  <Newspaper className="w-4 h-4 text-blue-500" />
+                  Live News Feed
                   {trackFilter && (
-                    <button
-                      type="button"
-                      onClick={() => setTrackFilter(null)}
-                      className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 underline"
-                    >
-                      전체 보기
-                    </button>
+                    <span className="text-xs font-normal text-emerald-600 dark:text-emerald-400">
+                      — {TRACK_META[trackFilter].label}만 보기
+                    </span>
                   )}
+                  {!loading && (
+                    <span className="text-xs font-normal lowercase text-gray-400">
+                      ({displayedNews.length}{trackFilter || searchQuery || bookmarkOnly ? ` / ${news.length}` : ''} articles)
+                    </span>
+                  )}
+                </h2>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as NewsSortBy)}
+                    className="text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1f1a] text-gray-700 dark:text-gray-300"
+                  >
+                    <option value="date">최신순</option>
+                    <option value="relevance">관련도순</option>
+                    <option value="track">Track별</option>
+                    <option value="keywordCount">키워드 매칭 수</option>
+                  </select>
                   <button
                     type="button"
-                    onClick={() => setShowClassifyHelp((v) => !v)}
-                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                    onClick={() => setBookmarkOnly((v) => !v)}
+                    className={`flex items-center gap-1 text-xs px-2 py-1.5 rounded border transition-colors ${bookmarkOnly ? 'border-amber-400 bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:border-amber-600 dark:text-amber-400' : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:text-amber-500'}`}
+                    title="북마크만 보기"
                   >
-                    <HelpCircle className="w-3.5 h-3.5" />
-                    분류 기준 보기
-                    {showClassifyHelp ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    {bookmarkOnly ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
                   </button>
+                  <div className="flex items-center gap-2">
+                    {trackFilter && (
+                      <button type="button" onClick={() => setTrackFilter(null)} className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 underline">
+                        전체 보기
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowClassifyHelp((v) => !v)}
+                      className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                    >
+                      <HelpCircle className="w-3.5 h-3.5" />
+                      분류 기준
+                      {showClassifyHelp ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
                 </div>
+              </div>
+              {/* Search bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="기사 검색 (예: 돌봄 AI, 장애인복지법)"
+                  className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-[#0a0f0a] text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none placeholder:text-gray-400"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600">
+                    초기화
+                  </button>
+                )}
               </div>
             </div>
 
@@ -166,7 +234,7 @@ export default function TrackingDashboard() {
               <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-[#0a0f0a]/80 text-xs space-y-4">
                 <div>
                   <h4 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Track (소스 기반)</h4>
-                  <p className="text-gray-500 dark:text-gray-400 mb-2">RSS 피드 출처에 따라 분류됩니다. 기사 내용과 무관하게 피드가 속한 카테고리로 표시됩니다.</p>
+                  <p className="text-gray-500 dark:text-gray-400 mb-2">RSS 피드 출처에 따라 분류됩니다.</p>
                   <ul className="space-y-1">
                     {(['caretech', 'investment', 'competitor', 'policy'] as const).map((track) => (
                       <li key={track} className="flex gap-2">
@@ -178,7 +246,7 @@ export default function TrackingDashboard() {
                 </div>
                 <div>
                   <h4 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Keyword (내용 기반)</h4>
-                  <p className="text-gray-500 dark:text-gray-400 mb-2">제목·요약에 키워드가 포함된 경우 [카테고리] 키워드 형태로 표시됩니다.</p>
+                  <p className="text-gray-500 dark:text-gray-400 mb-2">제목·요약에 키워드가 포함된 경우 표시됩니다.</p>
                   <ul className="space-y-1">
                     <li><span className="font-medium text-gray-600 dark:text-gray-400">시장</span> — 케어테크, 돌봄 AI, 행동분석, 멘탈케어 등</li>
                     <li><span className="font-medium text-gray-600 dark:text-gray-400">BM</span> — SROI, 가치 기반, 수가, 과금 모델 등</li>
@@ -204,17 +272,25 @@ export default function TrackingDashboard() {
                 </div>
               )}
 
+              {!loading && displayedNews.length === 0 && news.length > 0 && (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                  <Search className="w-8 h-8 mb-3 opacity-30" />
+                  <p className="text-sm">검색 결과가 없습니다</p>
+                  <button onClick={() => { setSearchQuery(''); setBookmarkOnly(false); setTrackFilter(null); }} className="text-xs text-blue-500 underline mt-2">필터 초기화</button>
+                </div>
+              )}
+
               {displayedNews.map((item) => {
                 const trackMeta = TRACK_META[item.track];
                 const keywordTags = (item.keywordCategories ?? []).slice(0, 5);
                 const extraCount = (item.keywordCategories?.length ?? 0) - 5;
+                const itemAnn = annotations[item.id];
                 return (
-                  <a
+                  <button
                     key={item.id}
-                    href={item.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-start gap-4 p-4 border-b border-gray-50 dark:border-gray-800/60 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group"
+                    type="button"
+                    onClick={() => setSelectedArticle(item)}
+                    className="w-full flex items-start gap-4 p-4 border-b border-gray-50 dark:border-gray-800/60 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group text-left"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -224,11 +300,18 @@ export default function TrackingDashboard() {
                         <span
                           className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                           title={trackMeta.tooltip}
-                          aria-label={`${trackMeta.label}: ${trackMeta.tooltip}`}
                         >
                           {trackMeta.label}
                         </span>
                         <span className="text-[11px] text-gray-400">{item.timeAgo}</span>
+                        {itemAnn?.isBookmarked && <BookmarkCheck className="w-3 h-3 text-amber-500" />}
+                        {(itemAnn?.rating ?? 0) > 0 && (
+                          <span className="flex items-center">
+                            {Array.from({ length: itemAnn!.rating }, (_, i) => (
+                              <Star key={i} className="w-3 h-3 text-amber-400 fill-amber-400" />
+                            ))}
+                          </span>
+                        )}
                       </div>
                       {keywordTags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-1.5">
@@ -236,25 +319,24 @@ export default function TrackingDashboard() {
                             <span
                               key={`${m.keyword}-${i}`}
                               className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-900/25 dark:text-emerald-400"
-                              aria-label={`키워드 매칭: ${KEYWORD_CATEGORY_LABELS[m.category]} - ${m.keyword}`}
                             >
                               [{KEYWORD_CATEGORY_LABELS[m.category]}] {m.keyword}
                             </span>
                           ))}
-                          {extraCount > 0 && (
-                            <span className="text-[9px] text-gray-400">+{extraCount}개</span>
-                          )}
+                          {extraCount > 0 && <span className="text-[9px] text-gray-400">+{extraCount}개</span>}
                         </div>
                       )}
                       <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
-                        {item.title}
+                        {searchQuery ? highlightText(item.title, searchQuery) : item.title}
                       </h3>
                       {item.description && (
-                        <p className="text-xs text-gray-500 line-clamp-2">{item.description}</p>
+                        <p className="text-xs text-gray-500 line-clamp-2">
+                          {searchQuery ? highlightText(item.description, searchQuery) : item.description}
+                        </p>
                       )}
                     </div>
                     <ExternalLink className="w-4 h-4 text-gray-300 group-hover:text-blue-500 mt-1 flex-shrink-0 transition-colors" />
-                  </a>
+                  </button>
                 );
               })}
             </div>
@@ -265,7 +347,6 @@ export default function TrackingDashboard() {
         <div className="lg:col-span-5 flex flex-col gap-6">
           <OpportunityGauge />
 
-          {/* Quick Action: Study로 이동 */}
           <Link
             href="/study"
             className="block bg-gradient-to-r from-blue-600 to-emerald-500 text-white p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow"
@@ -276,15 +357,25 @@ export default function TrackingDashboard() {
 
           {/* 공공 조달 트래커 */}
           <div className="bg-white dark:bg-[#141414] border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2 bg-gray-50/50 dark:bg-[#1a1f1a]/50">
-              <FileText className="w-4 h-4 text-emerald-500" />
-              <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                공공 조달 트래커
-              </h2>
+            <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-[#1a1f1a]/50">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-emerald-500" />
+                <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  공공 조달 트래커
+                </h2>
+              </div>
+              {policyCount > 0 && procurement.length === 0 && !loading && (
+                <span className="text-[10px] text-gray-400">정책 트랙 {policyCount}건 분석 중 적합 공고 없음</span>
+              )}
             </div>
             <div className="max-h-48 overflow-y-auto">
               {procurement.length === 0 && !loading && (
-                <p className="p-4 text-xs text-gray-400">조달 관련 뉴스가 없습니다.</p>
+                <div className="p-4 text-xs text-gray-400 space-y-1">
+                  <p>조달 적합도 high/medium 뉴스가 없습니다.</p>
+                  {policyCount > 0 && (
+                    <p className="text-[10px]">정책/조달 트랙 뉴스 {policyCount}건이 있지만, 현재 적합도 기준(AI 돌봄, 행동분석 등)에 부합하지 않습니다.</p>
+                  )}
+                </div>
               )}
               {procurement.slice(0, 5).map((p) => (
                 <ProcurementRow
@@ -334,6 +425,24 @@ export default function TrackingDashboard() {
           </div>
         </div>
       </div>
+
+      {selectedArticle && (
+        <ArticleDetailModal
+          article={selectedArticle}
+          relatedArticles={relatedArticles}
+          onClose={() => setSelectedArticle(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function highlightText(text: string, query: string): React.ReactNode {
+  if (!query.trim()) return text;
+  const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+  return parts.map((part, i) =>
+    part.toLowerCase() === query.toLowerCase()
+      ? <mark key={i} className="bg-yellow-200 dark:bg-yellow-800/50 text-inherit rounded px-0.5">{part}</mark>
+      : part
   );
 }
