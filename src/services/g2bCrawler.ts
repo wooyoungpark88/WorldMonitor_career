@@ -22,36 +22,100 @@ export interface ProcurementListing {
 }
 
 const FITNESS_RULES = {
-  high: ['AI 돌봄', 'Vision AI', '영상 분석 돌봄', '발달장애 AI', '정신건강 AI', '행동분석'],
-  medium: ['CCTV 지능형', 'AI 모니터링', '돌봄 로봇', '원격 돌봄', '돌봄', '장애인'],
+  high: [
+    'AI 돌봄',
+    'Vision AI',
+    '영상 분석 돌봄',
+    '발달장애 AI',
+    '정신건강 AI',
+    '행동분석',
+    '발달장애',
+    'ABA',
+    '특수교육',
+    '장애인 돌봄',
+    '행동치료',
+    '디지털치료제',
+  ],
+  medium: [
+    'CCTV 지능형',
+    'AI 모니터링',
+    '돌봄 로봇',
+    '원격 돌봄',
+    '돌봄',
+    '장애인',
+    '케어테크',
+    '정신건강',
+    '멘탈케어',
+    '돌봄 플랫폼',
+  ],
   low: ['AI', 'CCTV', '영상분석', '입찰', '조달'],
 };
 
-function computeFitness(text: string): { score: 'high' | 'medium' | 'low'; reason: string; matched: string[] } {
+const EXCLUSION_KEYWORDS = [
+  '군사',
+  '방산',
+  '군수',
+  '국방',
+  '무기',
+  '감시',
+  '보안',
+  '출입통제',
+];
+
+function hasExclusion(text: string): boolean {
   const lower = text.toLowerCase();
-  const matched: string[] = [];
+  return EXCLUSION_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
+}
+
+function computeFitness(text: string): { score: 'high' | 'medium' | 'low'; reason: string; matched: string[] } | null {
+  if (hasExclusion(text)) return null;
+
+  const lower = text.toLowerCase();
+  const highMatched: string[] = [];
+  const mediumMatched: string[] = [];
+  const lowMatched: string[] = [];
 
   for (const kw of FITNESS_RULES.high) {
-    if (lower.includes(kw.toLowerCase())) matched.push(kw);
+    if (lower.includes(kw.toLowerCase())) highMatched.push(kw);
   }
-  if (matched.length > 0) {
-    return { score: 'high', reason: `핵심 키워드 매칭: ${matched.join(', ')}`, matched };
-  }
-
   for (const kw of FITNESS_RULES.medium) {
-    if (lower.includes(kw.toLowerCase())) matched.push(kw);
+    if (lower.includes(kw.toLowerCase())) mediumMatched.push(kw);
   }
-  if (matched.length > 0) {
-    return { score: 'medium', reason: `관련 키워드: ${matched.join(', ')}`, matched };
+  for (const kw of FITNESS_RULES.low) {
+    if (lower.includes(kw.toLowerCase())) lowMatched.push(kw);
   }
 
-  for (const kw of FITNESS_RULES.low) {
-    if (lower.includes(kw.toLowerCase())) matched.push(kw);
+  const hasBid = lower.includes('입찰') || lower.includes('조달');
+
+  if (highMatched.length > 0) {
+    return {
+      score: 'high',
+      reason: `핵심 키워드: ${highMatched.join(', ')}`,
+      matched: highMatched,
+    };
   }
+
+  if (mediumMatched.length > 0) {
+    const bonus = hasBid ? ' (입찰/조달 관련)' : '';
+    return {
+      score: 'medium',
+      reason: `관련 키워드: ${mediumMatched.join(', ')}${bonus}`,
+      matched: mediumMatched,
+    };
+  }
+
+  if (lowMatched.length > 0 && hasBid) {
+    return {
+      score: 'low',
+      reason: `일반 키워드: ${lowMatched.join(', ')}`,
+      matched: lowMatched,
+    };
+  }
+
   return {
     score: 'low',
-    reason: matched.length > 0 ? `일반 키워드: ${matched.join(', ')}` : '키워드 미매칭',
-    matched,
+    reason: lowMatched.length > 0 ? `일반 키워드: ${lowMatched.join(', ')}` : '키워드 미매칭',
+    matched: lowMatched,
   };
 }
 
@@ -70,18 +134,26 @@ function extractAgencyFromTitle(title: string): string {
 
 /**
  * policy 트랙 뉴스에서 조달 관련 항목 추출 및 적합도 태깅
+ * high/medium만 노출 (low 제외), exclusion 키워드 매칭 시 제외
  */
 export async function fetchProcurementListings(): Promise<ProcurementListing[]> {
   const items = await fetchAllNews();
   const filtered = filterByKeywords(items);
   const policyItems = filtered.filter((i) => i.track === 'policy') as FilteredRssItem[];
 
-  const listings: ProcurementListing[] = policyItems.slice(0, 15).map((item, idx) => {
-    const text = `${item.title} ${item.description}`;
-    const { score, reason, matched } = computeFitness(text);
-    const agency = extractAgencyFromTitle(item.title);
+  const listings: ProcurementListing[] = [];
+  let idx = 0;
 
-    return {
+  for (const item of policyItems) {
+    const text = `${item.title} ${item.description}`;
+    const result = computeFitness(text);
+    if (!result) continue;
+
+    const { score, reason, matched } = result;
+    if (score === 'low') continue;
+
+    const agency = extractAgencyFromTitle(item.title);
+    listings.push({
       id: `proc-${item.id}-${idx}`,
       title: item.title,
       agency,
@@ -95,8 +167,10 @@ export async function fetchProcurementListings(): Promise<ProcurementListing[]> 
         (k, i, arr) => arr.indexOf(k) === i
       ),
       fetched_at: new Date().toISOString(),
-    };
-  });
+    });
+    idx++;
+    if (listings.length >= 15) break;
+  }
 
   return listings;
 }

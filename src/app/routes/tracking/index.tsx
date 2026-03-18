@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchAllNews } from '../../../services/rssFeed';
-import { filterByKeywords, sortByRelevance, KEYWORD_CATEGORY_LABELS, type FilteredRssItem } from '../../../services/keywordFilter';
+import { filterByKeywords, sortByRelevance, sortByDate, sortByTrack, sortByKeywordCount, KEYWORD_CATEGORY_LABELS, type FilteredRssItem } from '../../../services/keywordFilter';
 import { TRACK_META } from '../../../config/trackConfig';
 import { calculateOpportunityScore } from '../../../services/scoreCalculator';
 import { notifyOpportunityScore } from '../../../services/telegramBot';
@@ -11,10 +11,22 @@ import { Link } from 'wouter';
 import { fetchProcurementListings, type ProcurementListing } from '../../../services/g2bCrawler';
 import ProcurementRow from '../../../components/tracking/ProcurementRow';
 
+export type NewsSortBy = 'date' | 'relevance' | 'track' | 'keywordCount';
+
 export default function TrackingDashboard() {
   const [news, setNews] = useState<FilteredRssItem[]>([]);
   const [procurement, setProcurement] = useState<ProcurementListing[]>([]);
   const [showClassifyHelp, setShowClassifyHelp] = useState(false);
+  const [sortBy, setSortBy] = useState<NewsSortBy>('relevance');
+
+  const displayedNews = (() => {
+    switch (sortBy) {
+      case 'date': return sortByDate(news);
+      case 'track': return sortByTrack(news);
+      case 'keywordCount': return sortByKeywordCount(news);
+      default: return sortByRelevance(news);
+    }
+  })();
   const setOpportunityScores = useTrackingStore((s) => s.setOpportunityScores);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,21 +100,33 @@ export default function TrackingDashboard() {
         {/* Left Column — Live News Feed */}
         <div className="lg:col-span-7 flex flex-col gap-4">
           <div className="bg-white dark:bg-[#141414] border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col overflow-hidden flex-1">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-[#1a1f1a]/50">
+            <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-[#1a1f1a]/50 flex-wrap gap-2">
               <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-2">
                 <Newspaper className="w-4 h-4 text-blue-500" />
                 Live News Feed
                 {!loading && <span className="text-xs font-normal lowercase text-gray-400">({news.length} articles)</span>}
               </h2>
-              <button
-                type="button"
-                onClick={() => setShowClassifyHelp((v) => !v)}
-                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-              >
-                <HelpCircle className="w-3.5 h-3.5" />
-                분류 기준 보기
-                {showClassifyHelp ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </button>
+              <div className="flex items-center gap-2">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as NewsSortBy)}
+                  className="text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1f1a] text-gray-700 dark:text-gray-300"
+                >
+                  <option value="date">최신순</option>
+                  <option value="relevance">관련도순</option>
+                  <option value="track">Track별</option>
+                  <option value="keywordCount">키워드 매칭 수</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowClassifyHelp((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  분류 기준 보기
+                  {showClassifyHelp ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </div>
 
             {showClassifyHelp && (
@@ -147,7 +171,7 @@ export default function TrackingDashboard() {
                 </div>
               )}
 
-              {news.map((item) => {
+              {displayedNews.map((item) => {
                 const trackMeta = TRACK_META[item.track];
                 const keywordTags = (item.keywordCategories ?? []).slice(0, 5);
                 const extraCount = (item.keywordCategories?.length ?? 0) - 5;
@@ -250,7 +274,7 @@ export default function TrackingDashboard() {
             <div className="space-y-2">
               {(['caretech', 'investment', 'competitor', 'policy'] as const).map((track) => {
                 const label = TRACK_META[track].label;
-                const count = news.filter((n) => n.track === track).length;
+                const count = displayedNews.filter((n) => n.track === track).length;
                 return (
                   <div key={track} className="flex items-center justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">{label}</span>

@@ -146,3 +146,49 @@ export function filterByTrack(
 export function sortByRelevance(items: FilteredRssItem[]): FilteredRssItem[] {
   return [...items].sort((a, b) => (b.relevance_score ?? 0) - (a.relevance_score ?? 0));
 }
+
+/**
+ * 최신순 정렬 (pubDate 내림차순)
+ */
+export function sortByDate(items: FilteredRssItem[]): FilteredRssItem[] {
+  return [...items].sort((a, b) => {
+    const da = new Date(a.pubDate).getTime() || 0;
+    const db = new Date(b.pubDate).getTime() || 0;
+    return db - da;
+  });
+}
+
+const TRACK_ORDER: Record<string, number> = {
+  caretech: 0,
+  investment: 1,
+  competitor: 2,
+  policy: 3,
+};
+
+/**
+ * Track별 그룹 → 그룹 내 최신순
+ */
+export function sortByTrack(items: FilteredRssItem[]): FilteredRssItem[] {
+  return [...items].sort((a, b) => {
+    const orderA = TRACK_ORDER[a.track] ?? 4;
+    const orderB = TRACK_ORDER[b.track] ?? 4;
+    if (orderA !== orderB) return orderA - orderB;
+    const da = new Date(a.pubDate).getTime() || 0;
+    const db = new Date(b.pubDate).getTime() || 0;
+    return db - da;
+  });
+}
+
+/**
+ * 키워드 매칭 수 내림차순
+ */
+export function sortByKeywordCount(items: FilteredRssItem[]): FilteredRssItem[] {
+  return [...items].sort((a, b) => {
+    const countA = a.keywordCategories?.length ?? 0;
+    const countB = b.keywordCategories?.length ?? 0;
+    if (countB !== countA) return countB - countA;
+    const da = new Date(a.pubDate).getTime() || 0;
+    const db = new Date(b.pubDate).getTime() || 0;
+    return db - da;
+  });
+}
