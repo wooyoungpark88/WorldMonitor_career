@@ -212,6 +212,30 @@ export default function TrackingDashboard() {
                   </div>
                 </div>
               </div>
+              {/* Track filter buttons */}
+              <div className="flex items-center gap-2">
+                {(['caretech', 'investment', 'competitor', 'policy'] as const).map((track) => {
+                  const isActive = trackFilter === track;
+                  const count = news.filter((n) => n.track === track).length;
+                  return (
+                    <button
+                      key={track}
+                      type="button"
+                      onClick={() => setTrackFilter(isActive ? null : track)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                        isActive
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-500 dark:text-emerald-400 ring-1 ring-emerald-500/30'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-emerald-300 hover:text-emerald-600 dark:hover:border-emerald-700 dark:hover:text-emerald-400'
+                      }`}
+                    >
+                      {TRACK_META[track].label}
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isActive ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-gray-900' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500'}`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
               {/* Search bar */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
