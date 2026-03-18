@@ -12,14 +12,16 @@ import { fetchProcurementListings, type ProcurementListing } from '../../../serv
 import ProcurementRow from '../../../components/tracking/ProcurementRow';
 
 export type NewsSortBy = 'date' | 'relevance' | 'track' | 'keywordCount';
+type TrackType = 'caretech' | 'investment' | 'competitor' | 'policy';
 
 export default function TrackingDashboard() {
   const [news, setNews] = useState<FilteredRssItem[]>([]);
   const [procurement, setProcurement] = useState<ProcurementListing[]>([]);
   const [showClassifyHelp, setShowClassifyHelp] = useState(false);
   const [sortBy, setSortBy] = useState<NewsSortBy>('relevance');
+  const [trackFilter, setTrackFilter] = useState<TrackType | null>(null);
 
-  const displayedNews = (() => {
+  const sortedNews = (() => {
     switch (sortBy) {
       case 'date': return sortByDate(news);
       case 'track': return sortByTrack(news);
@@ -27,6 +29,10 @@ export default function TrackingDashboard() {
       default: return sortByRelevance(news);
     }
   })();
+
+  const displayedNews = trackFilter
+    ? sortedNews.filter((n) => n.track === trackFilter)
+    : sortedNews;
   const setOpportunityScores = useTrackingStore((s) => s.setOpportunityScores);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +57,14 @@ export default function TrackingDashboard() {
       setOpportunityScores(scores);
 
       if (scoreResult.shouldAlert) {
-        notifyOpportunityScore(scores).catch(() => {});
+        const toTrackNews = (items: FilteredRssItem[]): TrackNewsItem[] =>
+          items.map((i) => ({ title: i.title, link: i.link }));
+        const newsByTrack = {
+          policy: toTrackNews(sortByRelevance(filtered.filter((n) => n.track === 'policy'))),
+          investment: toTrackNews(sortByRelevance(filtered.filter((n) => n.track === 'investment'))),
+          competitor: toTrackNews(sortByRelevance(filtered.filter((n) => n.track === 'competitor'))),
+        };
+        notifyOpportunityScore({ ...scores, newsByTrack }).catch(() => {});
       }
 
       const proc = await fetchProcurementListings();
@@ -104,7 +117,16 @@ export default function TrackingDashboard() {
               <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-2">
                 <Newspaper className="w-4 h-4 text-blue-500" />
                 Live News Feed
-                {!loading && <span className="text-xs font-normal lowercase text-gray-400">({news.length} articles)</span>}
+                {trackFilter && (
+                  <span className="text-xs font-normal text-emerald-600 dark:text-emerald-400">
+                    — {TRACK_META[trackFilter].label}만 보기
+                  </span>
+                )}
+                {!loading && (
+                  <span className="text-xs font-normal lowercase text-gray-400">
+                    ({displayedNews.length}{trackFilter ? ` / ${news.length}` : ''} articles)
+                  </span>
+                )}
               </h2>
               <div className="flex items-center gap-2">
                 <select
@@ -117,15 +139,26 @@ export default function TrackingDashboard() {
                   <option value="track">Track별</option>
                   <option value="keywordCount">키워드 매칭 수</option>
                 </select>
-                <button
-                  type="button"
-                  onClick={() => setShowClassifyHelp((v) => !v)}
-                  className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  분류 기준 보기
-                  {showClassifyHelp ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                </button>
+                <div className="flex items-center gap-2">
+                  {trackFilter && (
+                    <button
+                      type="button"
+                      onClick={() => setTrackFilter(null)}
+                      className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 underline"
+                    >
+                      전체 보기
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowClassifyHelp((v) => !v)}
+                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    분류 기준 보기
+                    {showClassifyHelp ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -274,13 +307,26 @@ export default function TrackingDashboard() {
             <div className="space-y-2">
               {(['caretech', 'investment', 'competitor', 'policy'] as const).map((track) => {
                 const label = TRACK_META[track].label;
-                const count = displayedNews.filter((n) => n.track === track).length;
+                const count = news.filter((n) => n.track === track).length;
+                const isActive = trackFilter === track;
                 return (
                   <div key={track} className="flex items-center justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">{label}</span>
-                    <span className={`font-bold text-xs px-2 py-0.5 rounded ${count > 0 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600'}`}>
+                    <button
+                      type="button"
+                      onClick={() => setTrackFilter(count > 0 ? (isActive ? null : track) : null)}
+                      disabled={count === 0}
+                      className={`font-bold text-xs px-2 py-0.5 rounded transition-colors ${
+                        count > 0
+                          ? isActive
+                            ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-gray-900 ring-2 ring-emerald-400'
+                            : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 cursor-pointer'
+                          : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed'
+                      }`}
+                      title={count > 0 ? `${label} 기사만 보기` : '해당 트랙 기사 없음'}
+                    >
                       {count}
-                    </span>
+                    </button>
                   </div>
                 );
               })}

@@ -11,6 +11,40 @@ const CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID || '';
 
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
 
+/** 트랙별 뉴스 아이템 (알림용) */
+export interface TrackNewsItem {
+  title: string;
+  link: string;
+}
+
+/** Opportunity 알림 페이로드 — 트랙별 점수 + 해당 뉴스 목록 */
+export interface OpportunityAlertPayload extends OpportunityScoreState {
+  newsByTrack: {
+    policy: TrackNewsItem[];
+    investment: TrackNewsItem[];
+    competitor: TrackNewsItem[];
+  };
+}
+
+const MAX_NEWS_PER_TRACK = 5;
+const MAX_TITLE_LEN = 60;
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function truncate(s: string, len: number): string {
+  return s.length <= len ? s : s.slice(0, len - 1) + '…';
+}
+
+function formatTrackNews(items: TrackNewsItem[]): string {
+  if (items.length === 0) return '  (해당 트랙 뉴스 없음)';
+  return items
+    .slice(0, MAX_NEWS_PER_TRACK)
+    .map((n) => `  • <a href="${n.link}">${escapeHtml(truncate(n.title, MAX_TITLE_LEN))}</a>`)
+    .join('\n');
+}
+
 function isConfigured(): boolean {
   return !!BOT_TOKEN && !!CHAT_ID;
 }
@@ -46,10 +80,29 @@ export const TELEGRAM_TEMPLATES = {
     `🏢 ${item.agency}\n` +
     `${item.source_url}`,
 
-  opportunity: (score: OpportunityScoreState) =>
-    `🎯 [Opportunity Alert] Score: ${score.total}\n` +
-    `S1(Policy): ${score.s1} | S2(Funding): ${score.s2} | S3(Competitor): ${score.s3}\n` +
-    (score.shouldAlert ? '⚠️ ACT NOW' : '📊 Monitor'),
+  opportunity: (payload: OpportunityAlertPayload) => {
+    const lines: string[] = [
+      `🎯 [Opportunity Alert] Total: <b>${payload.total}</b>`,
+      payload.shouldAlert ? '⚠️ ACT NOW' : '📊 Monitor',
+      '',
+      '📊 <b>트랙별 점수</b>',
+      `• S1 정책/예산: ${payload.s1}`,
+      `• S2 자금유입: ${payload.s2}`,
+      `• S3 경쟁사: ${payload.s3}`,
+      '',
+      '📰 <b>트랙별 트래킹 뉴스</b>',
+      '',
+      `📌 <b>정책/예산</b> (S1: ${payload.s1})`,
+      formatTrackNews(payload.newsByTrack.policy),
+      '',
+      `📌 <b>자금유입</b> (S2: ${payload.s2})`,
+      formatTrackNews(payload.newsByTrack.investment),
+      '',
+      `📌 <b>경쟁사</b> (S3: ${payload.s3})`,
+      formatTrackNews(payload.newsByTrack.competitor),
+    ];
+    return lines.join('\n');
+  },
 
   competitor: (title: string, summary: string, url: string) =>
     `👀 [경쟁사 동향]\n${title}\n${summary}\n🔗 ${url}`,
@@ -73,9 +126,9 @@ export async function notifyProcurement(item: ProcurementListing): Promise<boole
   return sendMessage(TELEGRAM_TEMPLATES.procurement(item));
 }
 
-export async function notifyOpportunityScore(score: OpportunityScoreState): Promise<boolean> {
-  if (!score.shouldAlert) return false;
-  return sendMessage(TELEGRAM_TEMPLATES.opportunity(score));
+export async function notifyOpportunityScore(payload: OpportunityAlertPayload): Promise<boolean> {
+  if (!payload.shouldAlert) return false;
+  return sendMessage(TELEGRAM_TEMPLATES.opportunity(payload));
 }
 
 export async function notifyCompetitor(title: string, summary: string, url: string): Promise<boolean> {
