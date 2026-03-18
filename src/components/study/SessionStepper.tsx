@@ -1,6 +1,5 @@
-
 import { useStudyStore } from '../../stores/studyStore';
-import { CheckCircle2, ChevronRight, PenTool, BrainCircuit, Search, Lightbulb } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ChevronLeft, PenTool, BrainCircuit, Search, Lightbulb } from 'lucide-react';
 
 interface SessionStepperProps {
   title: string;
@@ -37,6 +36,12 @@ export default function SessionStepper({
     }
   };
 
+  const handlePrev = () => {
+    if (currentStep > 0) {
+      setStep(currentStep - 1);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-white dark:bg-[#141414] border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
       {/* Header */}
@@ -45,7 +50,7 @@ export default function SessionStepper({
           <span className="text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded">
             {category}
           </span>
-          <span className="text-xs text-gray-500 font-medium">Session in progress</span>
+          <span className="text-xs text-gray-500 font-medium">Step {currentStep + 1} of 5</span>
         </div>
         <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{title}</h2>
       </div>
@@ -59,12 +64,17 @@ export default function SessionStepper({
           
           return (
             <div key={step.id} className="flex items-center">
-              <div className={`flex flex-col items-center gap-2 ${
-                isCurrent ? 'text-blue-600 dark:text-blue-400' : 
-                isCompleted ? 'text-emerald-500' : 'text-gray-400'
-              }`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                  isCurrent ? 'border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20' : 
+              <button
+                onClick={() => step.id <= currentStep && setStep(step.id)}
+                className={`flex flex-col items-center gap-2 ${
+                  step.id <= currentStep ? 'cursor-pointer' : 'cursor-default'
+                } ${
+                  isCurrent ? 'text-blue-600 dark:text-blue-400' : 
+                  isCompleted ? 'text-emerald-500' : 'text-gray-400'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
+                  isCurrent ? 'border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 scale-110' : 
                   isCompleted ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-gray-300 dark:border-gray-700'
                 }`}>
                   {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : <Icon className="w-4 h-4" />}
@@ -72,10 +82,10 @@ export default function SessionStepper({
                 <span className={`text-[10px] font-bold uppercase tracking-wider ${isCurrent ? 'opacity-100' : 'opacity-70'}`}>
                   {step.label}
                 </span>
-              </div>
+              </button>
               
               {index < steps.length - 1 && (
-                <div className={`w-16 h-0.5 mx-2 rounded ${
+                <div className={`w-12 lg:w-16 h-0.5 mx-1 lg:mx-2 rounded transition-colors ${
                   isCompleted ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-gray-800'
                 }`} />
               )}
@@ -96,12 +106,20 @@ export default function SessionStepper({
       </div>
 
       {/* Footer Controls */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-[#141414] flex justify-end">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-[#141414] flex justify-between">
+        <button 
+          onClick={handlePrev}
+          disabled={currentStep === 0}
+          className="flex items-center gap-2 px-5 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Previous
+        </button>
         <button 
           onClick={handleNext}
           className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
         >
-          {currentStep === 4 ? 'Complete Session' : 'Next Step'}
+          {currentStep === 4 ? '✅ Complete Session' : 'Next Step'}
           {currentStep !== 4 && <ChevronRight className="w-4 h-4" />}
         </button>
       </div>
