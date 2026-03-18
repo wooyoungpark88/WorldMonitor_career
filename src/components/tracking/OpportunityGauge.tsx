@@ -3,11 +3,11 @@ import { useTrackingStore } from '../../stores/trackingStore';
 import { ShieldAlert, TrendingUp, Users } from 'lucide-react';
 
 export default function OpportunityGauge() {
-  const score = useTrackingStore((state: { opportunityScore: number }) => state.opportunityScore);
+  const { s1, s2, s3 } = useTrackingStore((s) => s.opportunityScores);
+  const score = useTrackingStore((s) => s.opportunityScore);
   const [animatedScore, setAnimatedScore] = useState(0);
 
   useEffect(() => {
-    // Animate score from 0 up to values
     const timer = setTimeout(() => {
       setAnimatedScore(score);
     }, 100);
@@ -79,18 +79,18 @@ export default function OpportunityGauge() {
       <div className="grid grid-cols-3 gap-3">
         <div className="flex flex-col items-center p-2 rounded-lg bg-gray-50 dark:bg-white/5">
           <ShieldAlert className="w-4 h-4 text-emerald-500 mb-1" />
-          <span className="text-xs text-gray-500 dark:text-gray-400">Policy</span>
-          <span className="text-sm font-bold text-gray-900 dark:text-white">85</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">Policy (S1)</span>
+          <span className="text-sm font-bold text-gray-900 dark:text-white">{s1}</span>
         </div>
         <div className="flex flex-col items-center p-2 rounded-lg bg-gray-50 dark:bg-white/5">
           <TrendingUp className="w-4 h-4 text-emerald-500 mb-1" />
-          <span className="text-xs text-gray-500 dark:text-gray-400">Funding</span>
-          <span className="text-sm font-bold text-gray-900 dark:text-white">72</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">Funding (S2)</span>
+          <span className="text-sm font-bold text-gray-900 dark:text-white">{s2}</span>
         </div>
         <div className="flex flex-col items-center p-2 rounded-lg bg-gray-50 dark:bg-white/5">
           <Users className="w-4 h-4 text-amber-500 mb-1" />
-          <span className="text-xs text-gray-500 dark:text-gray-400">Market</span>
-          <span className="text-sm font-bold text-gray-900 dark:text-white">45</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">Competitor (S3)</span>
+          <span className="text-sm font-bold text-gray-900 dark:text-white">{s3}</span>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { resolve, dirname, extname } from 'path';
+import { pathToFileURL } from 'url';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import { brotliCompress } from 'zlib';
 import { promisify } from 'util';
@@ -436,6 +437,47 @@ function sebufApiPlugin(): Plugin {
   };
 }
 
+/**
+ * Vite dev에서 /api/rss-proxy 처리.
+ * Vercel api/rss-proxy는 배포 시에만 동작하므로, dev에서는 동일 로직을 로컬에서 실행.
+ */
+function rssProxyPlugin(): Plugin {
+  let handler: ((req: Request) => Promise<Response>) | null = null;
+
+  return {
+    name: 'rss-proxy',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (!req.url?.startsWith('/api/rss-proxy')) return next();
+
+        try {
+          if (!handler) {
+            const mod = await import(pathToFileURL(resolve(__dirname, 'api/rss-proxy.js')).href);
+            handler = mod.default;
+          }
+          const port = server.config.server.port || 3000;
+          const url = new URL(req.url, `http://localhost:${port}`);
+          const headers: Record<string, string> = {};
+          for (const [k, v] of Object.entries(req.headers)) {
+            if (typeof v === 'string') headers[k] = v;
+            else if (Array.isArray(v)) headers[k] = v.join(', ');
+          }
+          const webReq = new Request(url.toString(), { method: req.method, headers });
+          const response = await handler!(webReq);
+          res.statusCode = response.status;
+          response.headers.forEach((v, k) => res.setHeader(k, v));
+          res.end(await response.text());
+        } catch (e) {
+          console.error('[rss-proxy]', e);
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: String((e as Error).message) }));
+        }
+      });
+    },
+  };
+}
+
 function youtubeLivePlugin(): Plugin {
   return {
     name: 'youtube-live',
@@ -510,6 +552,7 @@ export default defineConfig({
     react(),
     htmlVariantPlugin(),
     polymarketPlugin(),
+    rssProxyPlugin(),
     youtubeLivePlugin(),
     sebufApiPlugin(),
     brotliPrecompressPlugin(),

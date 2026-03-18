@@ -1,7 +1,10 @@
 /**
- * RSS Feed Service — 실제 RSS 피드를 파싱해 뉴스 아이템을 반환합니다.
- * Vite dev 서버 proxy 및 production Caddy proxy를 통해 CORS 우회합니다.
+ * RSS Feed Service — CARE_FEEDS 기반 뉴스 수집
+ * config/feeds.ts의 CARE_FEEDS를 사용하여 4트랙(caretech, investment, competitor, policy) 피드 수집
  */
+
+import type { Feed } from '@/types';
+import { FEEDS } from '@/config/feeds';
 
 export interface RssItem {
   id: string;
@@ -11,25 +14,49 @@ export interface RssItem {
   pubDate: string;
   timeAgo: string;
   description: string;
+  track: 'caretech' | 'investment' | 'competitor' | 'policy';
+  keywords_matched?: string[];
+  relevance_score?: number;
 }
 
-interface FeedConfig {
+interface FeedEntry {
   url: string;
   source: string;
+  track: 'caretech' | 'investment' | 'competitor' | 'policy';
 }
 
-const CARE_FEEDS: FeedConfig[] = [
-  { url: '/rss/guardian/society/rss', source: 'The Guardian' },
-  { url: '/rss/bbc/news/health/rss.xml', source: 'BBC Health' },
-  { url: '/rss/cnbc/id/10000108/device/rss/rss.html', source: 'CNBC Healthcare' },
-];
+const TRACK_MAP: Record<string, 'caretech' | 'investment' | 'competitor' | 'policy'> = {
+  careTech: 'caretech',
+  impactFunding: 'investment',
+  publicProcurement: 'policy',
+  competitorIntelligence: 'competitor',
+};
 
-const TECH_FEEDS: FeedConfig[] = [
-  { url: '/rss/techcrunch/feed/', source: 'TechCrunch' },
-  { url: '/rss/hn/newest?q=healthcare+AI', source: 'Hacker News' },
-];
+function resolveFeedUrl(url: string | Record<string, string>): string {
+  if (typeof url === 'string') return url;
+  return url.en ?? url.ko ?? Object.values(url)[0] ?? '';
+}
 
-const ALL_FEEDS = [...CARE_FEEDS, ...TECH_FEEDS];
+function buildFeedList(): FeedEntry[] {
+  const entries: FeedEntry[] = [];
+  const feeds = FEEDS as Record<string, Feed[]>;
+
+  for (const [category, items] of Object.entries(feeds)) {
+    const track = TRACK_MAP[category];
+    if (!track || !Array.isArray(items)) continue;
+
+    for (const feed of items) {
+      const url = resolveFeedUrl(feed.url);
+      if (!url) continue;
+      entries.push({ url, source: feed.name, track });
+    }
+  }
+
+  return entries;
+}
+
+const FEED_LIST = buildFeedList();
+const MAX_ITEMS_PER_FEED = 8;
 
 function calcTimeAgo(dateStr: string): string {
   const d = new Date(dateStr);
@@ -43,60 +70,66 @@ function calcTimeAgo(dateStr: string): string {
   return `${days}일 전`;
 }
 
-async function fetchSingleFeed(feed: FeedConfig): Promise<RssItem[]> {
+async function fetchSingleFeed(entry: FeedEntry): Promise<RssItem[]> {
   try {
-    const resp = await fetch(feed.url, { signal: AbortSignal.timeout(8000) });
+    const fetchUrl = entry.url.startsWith('/') ? entry.url : `/api/rss-proxy?url=${encodeURIComponent(entry.url)}`;
+    const resp = await fetch(fetchUrl, { signal: AbortSignal.timeout(12000) });
     if (!resp.ok) return [];
     const text = await resp.text();
     const parser = new DOMParser();
     const xml = parser.parseFromString(text, 'text/xml');
-    
+
     const items = xml.querySelectorAll('item');
     const results: RssItem[] = [];
-    
+
     items.forEach((item, idx) => {
-      if (idx >= 5) return; // max 5 per feed
+      if (idx >= MAX_ITEMS_PER_FEED) return;
       const title = item.querySelector('title')?.textContent?.trim() ?? '';
-      const link = item.querySelector('link')?.textContent?.trim() ?? '';
+      const link =
+        item.querySelector('link')?.textContent?.trim() ??
+        item.querySelector('link')?.getAttribute('href') ??
+        '';
       const pubDate = item.querySelector('pubDate')?.textContent?.trim() ?? '';
       const desc = item.querySelector('description')?.textContent?.trim() ?? '';
-      
+
       if (!title) return;
-      
+
       results.push({
-        id: `${feed.source}-${idx}`,
+        id: `${entry.source}-${idx}-${Date.now()}`,
         title,
         link,
-        source: feed.source,
+        source: entry.source,
         pubDate,
         timeAgo: pubDate ? calcTimeAgo(pubDate) : 'Recently',
         description: desc.replace(/<[^>]*>/g, '').slice(0, 200),
+        track: entry.track,
       });
     });
-    
+
     return results;
   } catch {
-    console.warn(`[RSS] Failed to fetch ${feed.source}: timeout or error`);
+    console.warn(`[RSS] Failed to fetch ${entry.source}: timeout or error`);
     return [];
   }
 }
 
 export async function fetchAllNews(): Promise<RssItem[]> {
-  const results = await Promise.allSettled(ALL_FEEDS.map(f => fetchSingleFeed(f)));
+  const results = await Promise.allSettled(FEED_LIST.map((f) => fetchSingleFeed(f)));
   const allItems: RssItem[] = [];
-  
+
   for (const r of results) {
     if (r.status === 'fulfilled') {
       allItems.push(...r.value);
     }
   }
-  
-  // Sort by date descending
+
   allItems.sort((a, b) => {
     const da = new Date(a.pubDate).getTime() || 0;
     const db = new Date(b.pubDate).getTime() || 0;
     return db - da;
   });
-  
+
   return allItems;
 }
+
+export { FEED_LIST };

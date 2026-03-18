@@ -8,11 +8,12 @@ interface ProcurementRowProps {
   agency: string;
   deadlineDisplay: string;
   isUrgent: boolean;
+  href?: string;
 }
 
-export default function ProcurementRow({ id: _id, title, budget, agency, deadlineDisplay, isUrgent }: ProcurementRowProps) {
-  return (
-    <Link href="/study" className="block group flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800/60 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
+export default function ProcurementRow({ id: _id, title, budget, agency, deadlineDisplay, isUrgent, href }: ProcurementRowProps) {
+  const content = (
+    <div className="block group flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800/60 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
       <div className="flex-1 min-w-0 pr-4">
         <div className="flex items-center gap-2 mb-1">
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isUrgent ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
@@ -34,6 +35,15 @@ export default function ProcurementRow({ id: _id, title, budget, agency, deadlin
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
-    </Link>
+    </div>
   );
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className="block">
+        {content}
+      </a>
+    );
+  }
+  return <Link href="/study">{content}</Link>;
 }

@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react';
-import { fetchAllNews, type RssItem } from '../../../services/rssFeed';
+import { fetchAllNews } from '../../../services/rssFeed';
+import { filterByKeywords, sortByRelevance, type FilteredRssItem } from '../../../services/keywordFilter';
+import { calculateOpportunityScore } from '../../../services/scoreCalculator';
+import { notifyOpportunityScore } from '../../../services/telegramBot';
+import { useTrackingStore } from '../../../stores/trackingStore';
 import OpportunityGauge from '../../../components/tracking/OpportunityGauge';
-import { ExternalLink, RefreshCw, Loader2, Clock, Newspaper } from 'lucide-react';
+import { ExternalLink, RefreshCw, Loader2, Clock, Newspaper, FileText } from 'lucide-react';
 import { Link } from 'wouter';
+import { fetchProcurementListings, type ProcurementListing } from '../../../services/g2bCrawler';
+import ProcurementRow from '../../../components/tracking/ProcurementRow';
 
 export default function TrackingDashboard() {
-  const [news, setNews] = useState<RssItem[]>([]);
+  const [news, setNews] = useState<FilteredRssItem[]>([]);
+  const [procurement, setProcurement] = useState<ProcurementListing[]>([]);
+  const setOpportunityScores = useTrackingStore((s) => s.setOpportunityScores);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -15,7 +23,25 @@ export default function TrackingDashboard() {
     setError(null);
     try {
       const items = await fetchAllNews();
-      setNews(items);
+      const filtered = sortByRelevance(filterByKeywords(items));
+      setNews(filtered);
+
+      const scoreResult = calculateOpportunityScore(filtered);
+      const scores = {
+        total: scoreResult.total,
+        s1: scoreResult.s1,
+        s2: scoreResult.s2,
+        s3: scoreResult.s3,
+        shouldAlert: scoreResult.shouldAlert,
+      };
+      setOpportunityScores(scores);
+
+      if (scoreResult.shouldAlert) {
+        notifyOpportunityScore(scores).catch(() => {});
+      }
+
+      const proc = await fetchProcurementListings();
+      setProcurement(proc);
       setLastRefresh(new Date());
     } catch (e) {
       setError('뉴스를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
@@ -92,9 +118,12 @@ export default function TrackingDashboard() {
                   className="flex items-start gap-4 p-4 border-b border-gray-50 dark:border-gray-800/60 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5">
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
                         {item.source}
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                        {item.track === 'caretech' ? '뉴스' : item.track === 'investment' ? '투자' : item.track === 'competitor' ? '경쟁' : '정책'}
                       </span>
                       <span className="text-[11px] text-gray-400">{item.timeAgo}</span>
                     </div>
@@ -125,15 +154,47 @@ export default function TrackingDashboard() {
             <p className="text-sm text-white/80">뉴스에서 발견한 인사이트를 5단계 학습 루프로 분석하세요.</p>
           </Link>
 
-          {/* Sources Summary */}
+          {/* 공공 조달 트래커 */}
+          <div className="bg-white dark:bg-[#141414] border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
+            <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2 bg-gray-50/50 dark:bg-[#1a1f1a]/50">
+              <FileText className="w-4 h-4 text-emerald-500" />
+              <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                공공 조달 트래커
+              </h2>
+            </div>
+            <div className="max-h-48 overflow-y-auto">
+              {procurement.length === 0 && !loading && (
+                <p className="p-4 text-xs text-gray-400">조달 관련 뉴스가 없습니다.</p>
+              )}
+              {procurement.slice(0, 5).map((p) => (
+                <ProcurementRow
+                  key={p.id}
+                  id={p.id}
+                  title={p.title}
+                  budget={p.budget > 0 ? `${(p.budget / 100000000).toFixed(1)}억` : '—'}
+                  agency={p.agency}
+                  deadlineDisplay={p.deadline || (p.fitness_score === 'high' ? '🔴 HIGH' : p.fitness_score === 'medium' ? '🟡 MED' : '⚪ LOW')}
+                  isUrgent={p.fitness_score === 'high'}
+                  href={p.source_url}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Track Summary */}
           <div className="bg-white dark:bg-[#141414] border border-gray-200 dark:border-gray-800 rounded-xl p-4 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Feed Sources</h2>
+            <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Market Pulse Tracks</h2>
             <div className="space-y-2">
-              {['The Guardian', 'BBC Health', 'CNBC Healthcare', 'TechCrunch', 'Hacker News'].map(src => {
-                const count = news.filter(n => n.source === src).length;
+              {[
+                { track: 'caretech', label: '케어테크 뉴스' },
+                { track: 'investment', label: '투자/펀딩' },
+                { track: 'competitor', label: '경쟁사' },
+                { track: 'policy', label: '정책/조달' },
+              ].map(({ track, label }) => {
+                const count = news.filter((n) => n.track === track).length;
                 return (
-                  <div key={src} className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">{src}</span>
+                  <div key={track} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">{label}</span>
                     <span className={`font-bold text-xs px-2 py-0.5 rounded ${count > 0 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600'}`}>
                       {count}
                     </span>
