@@ -15243,3 +15243,590 @@ body.has-critical-banner .panels-grid {
     grid-row: unset !important;
   }
 }
+
+/* ==========================================================================
+   Enhanced Mobile Responsive Design
+   ========================================================================== */
+
+/* ── Tablet breakpoint (769px – 1024px) ── */
+@media (max-width: 1024px) {
+  .panels-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 3px;
+    padding: 3px;
+  }
+
+  .header {
+    padding: 6px 12px;
+  }
+
+  .header-left {
+    gap: 10px;
+  }
+
+  .header-right {
+    gap: 8px;
+  }
+
+  .logo {
+    font-size: 12px;
+    letter-spacing: 1.5px;
+  }
+
+  .version {
+    display: none;
+  }
+
+  .variant-switcher {
+    margin-right: 4px;
+  }
+
+  .variant-option {
+    font-size: 8px;
+    padding: 2px 4px;
+  }
+
+  .map-section {
+    height: 45vh;
+    min-height: 280px;
+  }
+
+  /* Reduce fullscreen / settings button sizes */
+  .fullscreen-btn,
+  .settings-btn {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+
+  .search-btn {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  .copy-link-btn {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  /* Slightly smaller panel headers */
+  .panel-header {
+    padding: 5px 8px;
+  }
+
+  .panel-title {
+    font-size: 10px;
+    letter-spacing: 0.8px;
+  }
+}
+
+/* ── Mobile breakpoint enhancements (max-width: 768px) ── */
+@media (max-width: 768px) {
+  /* Better header layout for mobile */
+  .header {
+    height: auto;
+    min-height: 40px;
+    padding: 6px 10px;
+    gap: 6px;
+  }
+
+  .header-left {
+    gap: 8px;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .header-right {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-size: 11px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  .version,
+  .update-badge {
+    display: none;
+  }
+
+  /* Hide variant switcher labels, keep icons */
+  .variant-switcher {
+    padding: 2px 3px;
+    margin-right: 2px;
+  }
+
+  .variant-option .variant-label {
+    display: none !important;
+    max-width: 0 !important;
+  }
+
+  .variant-divider {
+    height: 10px;
+    margin: 0 1px;
+  }
+
+  /* Compact buttons */
+  .fullscreen-btn,
+  .settings-btn,
+  .search-btn,
+  .copy-link-btn {
+    padding: 4px 6px;
+    font-size: 10px;
+    min-height: 32px;
+    min-width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .github-link {
+    margin-left: 4px;
+  }
+
+  .github-link svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .theme-toggle-btn {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  /* Search modal fullscreen on mobile */
+  .search-overlay {
+    padding-top: 0;
+    align-items: stretch;
+  }
+
+  .search-modal {
+    width: 100%;
+    max-width: 100vw;
+    border-radius: 0;
+    height: 100vh;
+    max-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .search-results {
+    max-height: none;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .search-header {
+    padding: 12px;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+  }
+
+  .search-input {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+
+  /* Modal fullscreen on mobile */
+  .modal-overlay {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .modal {
+    max-width: 100%;
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+
+  /* Header clock hide on mobile */
+  .header-clock {
+    display: none;
+  }
+
+  /* Panel touch improvements */
+  .panel {
+    cursor: default; /* Disable grab cursor on mobile */
+    min-height: 280px;
+    max-height: none;
+  }
+
+  .panel-header {
+    padding: 8px 10px;
+    min-height: 36px;
+  }
+
+  .panel-title {
+    font-size: 10px;
+  }
+
+  .panel-count {
+    font-size: 9px;
+  }
+
+  /* Item touch targets */
+  .item {
+    padding: 10px 0;
+  }
+
+  .item-title {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  /* Map controls safe areas */
+  .map-controls {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  }
+
+  /* Download panel responsive */
+  .wm-dl-panel {
+    width: calc(100vw - 24px);
+    max-width: 280px;
+    right: 12px;
+    top: auto;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    border-radius: 8px;
+    border-left: none;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+  }
+
+  /* GDELT intel tabs scrollable */
+  .gdelt-intel-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+
+  .gdelt-intel-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Scrollbar width on mobile */
+  ::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  /* Displacement stats compact */
+  .disp-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .disp-stat-value {
+    font-size: 14px;
+  }
+
+  /* UCDP header wrap */
+  .ucdp-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ucdp-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
+  }
+
+  .ucdp-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Displacement tabs scroll */
+  .disp-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .disp-tabs::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ── Small mobile (max-width: 480px) ── */
+@media (max-width: 480px) {
+  .header {
+    padding: 6px 8px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .header-left {
+    order: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .header-right {
+    order: 2;
+    flex: 0 0 auto;
+  }
+
+  .header-center {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: center;
+    padding: 2px 0;
+  }
+
+  .logo {
+    font-size: 10px;
+    letter-spacing: 0.8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Hide variant switcher on very small screens */
+  .variant-switcher {
+    display: none;
+  }
+
+  /* Stack search and settings */
+  .settings-btn span,
+  .fullscreen-btn span {
+    display: none;
+  }
+
+  .search-btn {
+    padding: 4px;
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  .search-btn span {
+    display: none;
+  }
+
+  /* Copy link button hide */
+  .copy-link-btn {
+    display: none;
+  }
+
+  /* Full-width panels */
+  .panels-grid {
+    grid-template-columns: 1fr !important;
+    padding: 4px;
+    gap: 6px;
+  }
+
+  .panel {
+    min-height: 260px;
+    max-height: none;
+  }
+
+  /* Map section compact */
+  .map-section {
+    height: 35vh !important;
+    min-height: 200px !important;
+    max-height: 45vh !important;
+  }
+
+  /* Search result items larger touch targets */
+  .search-result-item {
+    padding: 12px 16px;
+    min-height: 44px;
+  }
+
+  /* Panel body compact */
+  .panel-body {
+    padding: 6px;
+  }
+
+  /* Sources toggle grid 2-col on tiny screens */
+  .sources-toggle-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Smaller table fonts */
+  .fires-table td,
+  .climate-table td,
+  .ucdp-table td,
+  .disp-table td {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+
+  .fires-table th,
+  .climate-table th,
+  .ucdp-table th,
+  .disp-table th {
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+
+  /* Map popup full width */
+  .map-popup {
+    max-width: calc(100vw - 16px) !important;
+    font-size: 11px;
+  }
+
+  .map-popup.map-popup-sheet {
+    left: 4px !important;
+    right: 4px !important;
+    max-height: min(75vh, calc(100vh - 48px));
+  }
+
+  .popup-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .popup-close {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 18px;
+  }
+}
+
+/* ── Extra small screens (max-width: 360px) ── */
+@media (max-width: 360px) {
+  .header {
+    padding: 4px 6px;
+  }
+
+  .logo {
+    font-size: 9px;
+  }
+
+  .header-right {
+    gap: 4px;
+  }
+
+  .github-link {
+    display: none;
+  }
+
+  .theme-toggle-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+  }
+
+  .map-section {
+    height: 30vh !important;
+    min-height: 180px !important;
+  }
+
+  .panel-header {
+    padding: 6px 8px;
+  }
+
+  .panel-title {
+    font-size: 9px;
+    letter-spacing: 0.5px;
+  }
+}
+
+/* ── Touch device optimizations ── */
+@media (hover: none) and (pointer: coarse) {
+  /* Ensure all interactive elements meet 44px touch target */
+  button,
+  [role="button"],
+  select,
+  .layer-toggle,
+  .time-btn,
+  .disp-tab,
+  .ucdp-tab {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  /* Remove hover effects that cause sticky states on touch */
+  .panel:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .item:hover {
+    background: transparent;
+  }
+
+  /* Disable grab cursor on touch devices */
+  .panel {
+    cursor: default;
+  }
+
+  /* Smooth scrolling for panels */
+  .panel-body,
+  .main-content {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Prevent text selection during scroll */
+  .panels-grid {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .panel-body {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+/* ── Landscape mobile ── */
+@media (max-width: 896px) and (orientation: landscape) {
+  .map-section {
+    height: 60vh !important;
+    min-height: 200px !important;
+    max-height: 80vh !important;
+  }
+
+  .panels-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+
+  .panel {
+    min-height: 240px;
+    max-height: 360px;
+  }
+
+  .header {
+    height: 36px;
+    padding: 4px 10px;
+  }
+}
+
+/* ── Safe area insets for notched devices ── */
+@supports (padding: max(0px)) {
+  .header {
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+  }
+
+  .panels-grid {
+    padding-left: max(4px, env(safe-area-inset-left));
+    padding-right: max(4px, env(safe-area-inset-right));
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+}
+
+/* ── Reduced motion preference ── */
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .map-popup,
+  .map-popup.map-popup-sheet,
+  .wm-dl-panel,
+  .search-overlay {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .skeleton-line {
+    animation: none !important;
+  }
+
+  @keyframes pulse-alert {
+    0%, 100% { opacity: 1; }
+  }
+}

@@ -117,6 +117,21 @@
 
       @keyframes skel-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
+      /* Skeleton mobile responsive */
+      @media (max-width: 768px) {
+        .skeleton-header{padding:6px 10px;height:36px}
+        .skeleton-map{height:40vh;min-height:180px}
+        .skeleton-grid{grid-template-columns:1fr;gap:6px;padding:6px}
+        .skeleton-panel{height:280px}
+        .skeleton-header-right .skeleton-pill:nth-child(n+2){display:none}
+      }
+      @media (max-width: 480px) {
+        .skeleton-header{height:32px;padding:4px 8px}
+        .skeleton-map{height:35vh;min-height:160px}
+        .skeleton-panel{height:240px}
+        .skeleton-header-left .skeleton-pill:nth-child(2){display:none}
+      }
+
       /* ---------- skeleton shell (light theme) ---------- */
       [data-theme="light"] .skeleton-shell{background:#f8f9fa}
       [data-theme="light"] .skeleton-header{background:#fff;border-bottom-color:#d4d4d4}

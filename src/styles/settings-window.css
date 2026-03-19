@@ -819,3 +819,159 @@ tr.diag-err td { color: var(--settings-red); }
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Mobile responsive for settings ── */
+@media (max-width: 768px) {
+  .settings-shell {
+    font-size: 13px;
+  }
+
+  .settings-tabs {
+    padding: 10px 12px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    justify-content: flex-start;
+    gap: 0;
+  }
+
+  .settings-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .settings-tab {
+    font-size: 12px;
+    padding: 8px 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .settings-tab-panels {
+    padding: 12px 14px;
+  }
+
+  .settings-footer {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
+  .settings-btn {
+    font-size: 12px;
+    padding: 8px 16px;
+    min-width: 70px;
+  }
+
+  .settings-runtime-panel .runtime-feature {
+    padding: 10px 12px;
+  }
+
+  .settings-runtime-panel .runtime-feature-header label {
+    font-size: 13px;
+  }
+
+  .settings-runtime-panel .runtime-secret-row input {
+    font-size: 14px; /* Prevent iOS zoom */
+    padding: 10px 12px;
+  }
+
+  .wm-hero-title {
+    font-size: 18px;
+  }
+
+  .wm-hero-desc {
+    font-size: 12px;
+  }
+
+  .wm-key-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .wm-register-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .wm-input {
+    font-size: 16px; /* Prevent iOS zoom */
+  }
+
+  /* Diagnostics table scroll */
+  .diag-traffic-log {
+    max-height: 200px;
+  }
+
+  .diag-table {
+    font-size: 11px;
+  }
+
+  .diag-table td {
+    max-width: 150px;
+    padding: 4px 8px;
+  }
+
+  .diag-table th {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .diag-toggles {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .diag-traffic-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .diag-traffic-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .debug-actions button {
+    font-size: 12px;
+    padding: 8px 12px;
+    flex: 1;
+    min-width: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-tabs {
+    padding: 8px 8px 0;
+  }
+
+  .settings-tab {
+    font-size: 11px;
+    padding: 7px 10px;
+  }
+
+  .settings-tab-panels {
+    padding: 10px;
+  }
+
+  .settings-footer {
+    padding: 10px;
+    flex-direction: column;
+  }
+
+  .settings-btn {
+    width: 100%;
+  }
+
+  .settings-runtime-panel .runtime-config-summary {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .wm-tab {
+    max-width: 100%;
+  }
+
+  .wm-hero {
+    padding: 14px 12px;
+  }
+}

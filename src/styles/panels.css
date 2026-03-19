@@ -179,3 +179,56 @@
   width: 100%;
 }
 .wm-dl-toggle:hover { color: var(--text, #e8e8e8); }
+
+/* ==========================================================
+   Panel-specific Mobile Responsive Styles
+   ========================================================== */
+
+@media (max-width: 768px) {
+  /* Fires panel */
+  .fires-table th { font-size: 9px; padding: 3px 6px; }
+  .fires-table td { padding: 4px 6px; font-size: 11px; }
+  .fires-footer { padding: 6px 6px 0; font-size: 9px; }
+
+  /* Population Exposure */
+  .popexp-summary { padding: 6px 8px; }
+  .popexp-total { font-size: 14px; }
+  .popexp-card { padding: 5px 8px; }
+  .popexp-card-name { font-size: 11px; }
+
+  /* Climate panel */
+  .climate-table th { font-size: 9px; padding: 3px 6px; }
+  .climate-table td { padding: 4px 6px; font-size: 11px; }
+  .climate-badge { font-size: 8px; padding: 1px 4px; }
+
+  /* Displacement panel */
+  .disp-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 4px; }
+  .disp-stat-value { font-size: 13px; }
+  .disp-stat-label { font-size: 8px; }
+  .disp-stat-box { padding: 6px 4px; }
+  .disp-tab { padding: 5px 10px; font-size: 10px; min-height: 32px; }
+  .disp-table th { font-size: 9px; padding: 3px 6px; }
+  .disp-table td { padding: 4px 6px; font-size: 11px; }
+
+  /* UCDP panel */
+  .ucdp-tab { padding: 5px 8px; font-size: 10px; min-height: 32px; }
+  .ucdp-table th { font-size: 9px; padding: 3px 6px; }
+  .ucdp-table td { padding: 4px 6px; font-size: 11px; }
+  .ucdp-actors { max-width: 120px; font-size: 10px; }
+
+  /* Download panel */
+  .wm-dl-panel { width: calc(100vw - 24px); max-width: 260px; }
+  .wm-dl-btn { padding: 8px 10px; min-height: 36px; }
+}
+
+@media (max-width: 480px) {
+  /* Displacement stats single column on tiny screens */
+  .disp-stats-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Hide less important columns */
+  .ucdp-actors { display: none; }
+  .climate-zone { max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Download panel full width */
+  .wm-dl-panel { max-width: calc(100vw - 16px); right: 8px; }
+}
