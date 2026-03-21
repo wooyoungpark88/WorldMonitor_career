@@ -986,6 +986,11 @@ const CARE_FEEDS: Record<string, Feed[]> = {
     { name: '인공지능신문', url: rss('https://www.aitimes.com/rss/allArticle.xml'), lang: 'ko' },
     // Google News fallback (Tier 3)
     { name: '돌봄AI 뉴스', url: rss('https://news.google.com/rss/search?q=돌봄+AI+행동분석+디지털치료제+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    // Mental Health + AI (Tier 2-3)
+    { name: 'Psych Central', url: rss('https://psychcentral.com/feed') },
+    { name: 'Mental Health AI', url: rss('https://news.google.com/rss/search?q=AI+mental+health+therapy+chatbot+when:7d&hl=en-US&gl=US&ceid=US:en') },
+    { name: '멘탈케어 AI', url: rss('https://news.google.com/rss/search?q=멘탈케어+OR+정신건강+AI+OR+마음돌봄+OR+심리상담+AI+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    { name: '디지털치료제', url: rss('https://news.google.com/rss/search?q=디지털치료제+OR+DTx+정신건강+OR+우울+OR+불안+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
   ],
 
   // 2. Impact & Funding Track — Direct RSS prioritized
@@ -1036,6 +1041,9 @@ const CARE_FEEDS: Record<string, Feed[]> = {
     { name: '플라이투', url: rss('https://news.google.com/rss/search?q=플라이투+OR+Flyto+투자+when:14d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
     { name: 'Woebot Health', url: rss('https://news.google.com/rss/search?q="Woebot+Health"+OR+Woebot+AI+when:14d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Ambient.ai', url: rss('https://news.google.com/rss/search?q="Ambient.ai"+AI+vision+when:14d&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'Ginger/Headspace', url: rss('https://news.google.com/rss/search?q="Headspace+Health"+OR+Ginger+AI+mental+when:14d&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'Talkiatry', url: rss('https://news.google.com/rss/search?q=Talkiatry+OR+Cerebral+OR+mental+health+startup+when:14d&hl=en-US&gl=US&ceid=US:en') },
+    { name: '마인드AI', url: rss('https://news.google.com/rss/search?q=마인드AI+OR+트로스트+OR+마보+정신건강+when:14d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
   ],
 };
 

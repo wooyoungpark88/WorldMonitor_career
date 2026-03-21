@@ -14,6 +14,7 @@
  *   /report     — 주간 리포트
  *   /status     — 시스템 상태
  *   /keyword add|remove|list — 키워드 관리
+ *   /exclude    — 기사 제외 (Negative KB)
  *   /help       — 명령어 목록
  */
 
@@ -27,6 +28,9 @@ let settings = {
   telegramEnabled: true,
   customKeywords: [],
 };
+
+// ─── Server-side exclusion list (parallel to client-side exclusionStore) ──────
+let serverExclusions = [];
 
 // ─── In-memory score cache (updated by /score command fetching) ───
 let cachedScore = null;
@@ -80,9 +84,13 @@ const TRACK_FEEDS = {
   ],
   competitor: [
     { name: 'Google 네오펙트', url: 'https://news.google.com/rss/search?q=네오펙트+OR+플라이투+OR+루닛+OR+뷰노&hl=ko&gl=KR&ceid=KR:ko' },
+    { name: 'Ginger/Headspace', url: 'https://news.google.com/rss/search?q="Headspace+Health"+OR+Ginger+AI+mental+when:14d&hl=en-US&gl=US&ceid=US:en' },
+    { name: '마인드AI', url: 'https://news.google.com/rss/search?q=마인드AI+OR+트로스트+OR+마보+정신건강+when:14d&hl=ko&gl=KR&ceid=KR:ko' },
   ],
   caretech: [
     { name: 'Google 케어테크', url: 'https://news.google.com/rss/search?q=돌봄+AI+로봇+행동분석&hl=ko&gl=KR&ceid=KR:ko' },
+    { name: 'Mental Health AI', url: 'https://news.google.com/rss/search?q=AI+mental+health+therapy+chatbot+when:7d&hl=en-US&gl=US&ceid=US:en' },
+    { name: '멘탈케어 AI', url: 'https://news.google.com/rss/search?q=멘탈케어+OR+정신건강+AI+OR+마음돌봄+OR+심리상담+AI+when:7d&hl=ko&gl=KR&ceid=KR:ko' },
   ],
 };
 
@@ -117,6 +125,8 @@ const SOURCE_TIER_MAP = {
   '네오펙트': 3, '뷰노': 3, '루닛': 3, '플라이투': 3,
   'Woebot Health': 3, 'Ambient.ai': 3, '소풍벤처스': 3,
   'MYSC': 3, 'D3쥬빌리': 3, 'Cogito': 3, 'Nourish Care': 3, 'SimCare AI': 3,
+  'Psych Central': 2, 'Mental Health AI': 3, '멘탈케어 AI': 3, '디지털치료제': 3,
+  'Ginger/Headspace': 3, 'Talkiatry': 3, '마인드AI': 3,
 };
 
 function tierEmoji(sourceName) {
@@ -231,6 +241,10 @@ async function handleHelp(chatId) {
 /keyword remove 키워드 — 키워드 제거
 /keyword list — 키워드 목록
 
+🚫 <b>제외(Negative KB)</b>
+/exclude 기사제목 — 기사 제외 등록
+/exclude — 제외 목록 조회
+
 /help — 이 도움말`;
 
   await sendTelegram(chatId, text);
@@ -272,7 +286,7 @@ async function handleNews(chatId, trackArg) {
   await sendTelegram(chatId, '⏳ 뉴스를 수집하고 있습니다...');
 
   if (track) {
-    const items = await fetchTrackNews(track);
+    const items = (await fetchTrackNews(track)).filter(i => !isServerExcluded(i.title));
     const label = TRACK_LABELS[track] || track;
 
     if (items.length === 0) {
@@ -285,7 +299,11 @@ async function handleNews(chatId, trackArg) {
     );
     await sendTelegram(chatId, `📰 <b>${escapeHtml(label)}</b> 최신 뉴스\n\n${lines.join('\n')}\n\n🔵직접 🟢전문 🟡애그리게이터 ⚪기타`);
   } else {
-    const allNews = await fetchAllTrackNews();
+    const allNewsRaw = await fetchAllTrackNews();
+    const allNews = {};
+    for (const [t, items] of Object.entries(allNewsRaw)) {
+      allNews[t] = (items || []).filter(i => !isServerExcluded(i.title));
+    }
     const sections = [];
 
     for (const [t, items] of Object.entries(allNews)) {
@@ -537,6 +555,72 @@ async function handleKeyword(chatId, action, value) {
   await sendTelegram(chatId, '❌ 알 수 없는 동작입니다.\n사용법: /keyword add|remove|list 키워드');
 }
 
+// ─── Exclusion helpers ──────────────────────────────────────────────────────────
+
+function normalizeWords(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\sㄱ-ㅎ가-힣]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 1);
+}
+
+function wordOverlapScore(wordsA, wordsB) {
+  if (wordsA.length === 0 || wordsB.length === 0) return 0;
+  const setB = new Set(wordsB);
+  let intersection = 0;
+  for (const w of wordsA) {
+    if (setB.has(w)) intersection++;
+  }
+  const union = new Set([...wordsA, ...wordsB]).size;
+  return union > 0 ? intersection / union : 0;
+}
+
+function isServerExcluded(title) {
+  if (serverExclusions.length === 0) return false;
+  const words = normalizeWords(title);
+  if (words.length === 0) return false;
+  for (const ex of serverExclusions) {
+    if (wordOverlapScore(words, ex.titleWords) >= 0.4) return true;
+  }
+  return false;
+}
+
+async function handleExclude(chatId, titleArg) {
+  if (!titleArg) {
+    // Show current exclusion list
+    if (serverExclusions.length === 0) {
+      await sendTelegram(chatId, '🚫 제외된 기사가 없습니다.\n\n사용법: /exclude 기사 제목 키워드');
+      return;
+    }
+    const lines = serverExclusions.map(
+      (ex, i) => `${i + 1}. ${escapeHtml(truncate(ex.title, 50))}\n   ${ex.excludedAt}`
+    );
+    await sendTelegram(chatId, `🚫 <b>제외 목록</b> (${serverExclusions.length}건)\n\n${lines.join('\n\n')}`);
+    return;
+  }
+
+  // Check for duplicates
+  const lowerTitle = titleArg.toLowerCase();
+  if (serverExclusions.some(ex => ex.title.toLowerCase() === lowerTitle)) {
+    await sendTelegram(chatId, `⚠️ 이미 제외된 항목입니다: "${escapeHtml(truncate(titleArg))}"`);
+    return;
+  }
+
+  // Add to exclusion list
+  const entry = {
+    title: titleArg,
+    titleWords: normalizeWords(titleArg),
+    excludedAt: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+  };
+  serverExclusions.push(entry);
+
+  await sendTelegram(
+    chatId,
+    `🚫 제외 등록 완료\n\n"<b>${escapeHtml(truncate(titleArg))}</b>"\n\n이후 유사한 기사가 뉴스 결과에서 필터링됩니다.\n현재 제외 목록: ${serverExclusions.length}건`
+  );
+}
+
 // ─── Command Router ────────────────────────────────────────────────────────────
 
 async function routeCommand(chatId, text) {
@@ -592,6 +676,9 @@ async function routeCommand(chatId, text) {
     case '/keyword':
     case '/kw':
       return handleKeyword(chatId, args[0]?.toLowerCase(), args.slice(1).join(' '));
+
+    case '/exclude':
+      return handleExclude(chatId, args.join(' '));
 
     default:
       await sendTelegram(chatId, `❓ 알 수 없는 명령: ${escapeHtml(command)}\n/help 로 사용 가능한 명령을 확인하세요.`);

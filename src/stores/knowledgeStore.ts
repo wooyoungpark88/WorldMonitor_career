@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 export interface KnowledgeItem {
   id: string;
-  type: 'study_insight' | 'article_memo' | 'manual_note';
+  type: 'study_insight' | 'article_memo' | 'manual_note' | 'exclusion_note';
   title: string;
   content: string;
   tags: string[];

@@ -5,6 +5,7 @@
 
 import type { RssItem } from './rssFeed';
 import { getSourceTier } from '@/config/sourceTiers';
+import { isExcludedByKB } from '@/stores/exclusionStore';
 
 export type KeywordCategory = 'market' | 'bm' | 'policy' | 'investment';
 
@@ -25,6 +26,22 @@ export const CARE_KEYWORDS: Record<KeywordCategory, string[]> = {
     '멘탈케어',
     '원격 모니터링',
     '디지털 치료',
+    'mental health AI',
+    'AI therapy',
+    'AI counseling',
+    'digital mental health',
+    'mental health chatbot',
+    'cognitive behavioral therapy AI',
+    'CBT app',
+    'telepsychiatry',
+    'AI 심리상담',
+    '정신건강 AI',
+    '멘탈헬스',
+    'AI 치료',
+    '마음돌봄',
+    '심리치료 AI',
+    '우울증 AI',
+    '불안장애 AI',
   ],
   bm: [
     'care SaaS pricing',
@@ -54,6 +71,10 @@ export const CARE_KEYWORDS: Record<KeywordCategory, string[]> = {
     'AI 돌봄',
     '정신건강',
     '장애인',
+    '정신건강증진법',
+    '자살예방법',
+    '정신건강복지센터',
+    '마음건강',
   ],
   investment: [
     'digital health funding',
@@ -67,6 +88,10 @@ export const CARE_KEYWORDS: Record<KeywordCategory, string[]> = {
     '시리즈',
     '벤처캐피탈',
     '임팩트 투자',
+    'mental health startup funding',
+    'digital therapeutics investment',
+    '멘탈헬스 투자',
+    '정신건강 스타트업',
   ],
 };
 
@@ -125,6 +150,11 @@ export function filterByKeywords(items: RssItem[]): FilteredRssItem[] {
     const tier = getSourceTier(item.source);
     const tierBonus = tier === 1 ? 15 : tier === 2 ? 10 : tier === 4 ? -5 : 0;
     relevance_score = Math.max(0, Math.min(100, relevance_score + tierBonus));
+
+    // Penalize articles similar to user-excluded content
+    if (isExcludedByKB(searchText)) {
+      relevance_score = Math.max(0, relevance_score - 40); // Heavy penalty
+    }
 
     return {
       ...item,

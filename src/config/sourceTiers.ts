@@ -66,6 +66,13 @@ export const CARE_SOURCE_TIERS: Record<string, SourceTier> = {
   'Cogito': 3,
   'Nourish Care': 3,
   'SimCare AI': 3,
+  'Psych Central': 2,
+  'Mental Health AI': 3,
+  '멘탈케어 AI': 3,
+  '디지털치료제': 3,
+  'Ginger/Headspace': 3,
+  'Talkiatry': 3,
+  '마인드AI': 3,
 };
 
 export function getSourceTier(sourceName: string): SourceTier {

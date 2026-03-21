@@ -239,6 +239,7 @@ const ALLOWED_DOMAINS = [
   'www.moel.go.kr',
   'www.bokjitimes.com',
   'www.ablenews.co.kr',
+  'psychcentral.com',
 ];
 
 export default async function handler(req) {
