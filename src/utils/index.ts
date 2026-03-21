@@ -173,5 +173,7 @@ export * from './analysis-constants';
 export { getCSSColor, invalidateColorCache } from './theme-colors';
 export { getStoredTheme, getCurrentTheme, setTheme, applyStoredTheme } from './theme-manager';
 export type { Theme } from './theme-manager';
+export { storage } from './storage';
+export { safeHTML, createElement, setInnerHTML } from './safe-dom';
 
 import { getCurrentLanguage } from '../services/i18n';

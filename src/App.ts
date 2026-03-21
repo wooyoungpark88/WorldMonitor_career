@@ -1,11 +1,7 @@
-import type { NewsItem, Monitor, PanelConfig, MapLayers, RelatedAsset, InternetOutage, SocialUnrestEvent, MilitaryFlight, MilitaryVessel, MilitaryFlightCluster, MilitaryVesselCluster, CyberThreat } from '@/types';
+import type { NewsItem, Monitor, PanelConfig, MapLayers, RelatedAsset } from '@/types';
+import { EventManager } from '@/services/event-manager';
+import { UpdateChecker } from '@/services/update-checker';
 import {
-  FEEDS,
-  INTEL_SOURCES,
-  SECTORS,
-  COMMODITIES,
-  MARKET_SYMBOLS,
-  REFRESH_INTERVALS,
   DEFAULT_PANELS,
   DEFAULT_MAP_LAYERS,
   MOBILE_DEFAULT_MAP_LAYERS,
@@ -14,79 +10,46 @@ import {
   LAYER_TO_SOURCE,
 } from '@/config';
 import { BETA_MODE } from '@/config/beta';
-import { fetchCategoryFeeds, getFeedFailures, fetchMultipleStocks, fetchCrypto, fetchPredictions, fetchEarthquakes, fetchWeatherAlerts, fetchFredData, fetchInternetOutages, isOutagesConfigured, fetchAisSignals, initAisStream, getAisStatus, disconnectAisStream, isAisConfigured, fetchCableActivity, fetchCableHealth, fetchProtestEvents, getProtestStatus, fetchFlightDelays, fetchMilitaryFlights, fetchMilitaryVessels, initMilitaryVesselStream, isMilitaryVesselTrackingConfigured, fetchUSNIFleetReport, initDB, updateBaseline, calculateDeviation, addToSignalHistory, saveSnapshot, cleanOldSnapshots, analysisWorker, fetchPizzIntStatus, fetchGdeltTensions, fetchNaturalEvents, fetchRecentAwards, fetchOilAnalytics, fetchCyberThreats, drainTrendingSignals } from '@/services';
+import {
+  DEEP_LINK_MAX_RETRIES,
+  DEEP_LINK_RETRY_INTERVAL_MS,
+  DEEP_LINK_INITIAL_DELAY_MS,
+  TOAST_DURATION_MS,
+  SNAPSHOT_INTERVAL_MS,
+  BANNER_DISMISS_DURATION_MS,
+} from '@/config/constants';
+import { isOutagesConfigured, initAisStream, disconnectAisStream, isAisConfigured, initDB, saveSnapshot, cleanOldSnapshots } from '@/services';
 import { fetchCountryMarkets } from '@/services/prediction';
 import { mlWorker } from '@/services/ml-worker';
-import { clusterNewsHybrid } from '@/services/clustering';
-import { ingestProtests, ingestFlights, ingestVessels, ingestEarthquakes, detectGeoConvergence, geoConvergenceToSignal } from '@/services/geo-convergence';
 import { signalAggregator } from '@/services/signal-aggregator';
-import { updateAndCheck } from '@/services/temporal-baseline';
-import { fetchAllFires, flattenFires, computeRegionStats, toMapFires } from '@/services/wildfires';
-import { SatelliteFiresPanel } from '@/components/SatelliteFiresPanel';
-import { analyzeFlightsForSurge, surgeAlertToSignal, detectForeignMilitaryPresence, foreignPresenceToSignal, type TheaterPostureSummary } from '@/services/military-surge';
-import { fetchCachedTheaterPosture } from '@/services/cached-theater-posture';
-import { ingestProtestsForCII, ingestMilitaryForCII, ingestNewsForCII, ingestOutagesForCII, ingestConflictsForCII, ingestUcdpForCII, ingestHapiForCII, ingestDisplacementForCII, ingestClimateForCII, startLearning, isInLearningMode, calculateCII, getCountryData, TIER1_COUNTRIES } from '@/services/country-instability';
+import type { TheaterPostureSummary } from '@/services/military-surge';
+import { startLearning, calculateCII, getCountryData, TIER1_COUNTRIES } from '@/services/country-instability';
 import { dataFreshness, type DataSourceId } from '@/services/data-freshness';
-import { focusInvestmentOnMap } from '@/services/investments-focus';
-import { fetchConflictEvents, fetchUcdpClassifications, fetchHapiSummary, fetchUcdpEvents, deduplicateAgainstAcled } from '@/services/conflict';
-import { fetchUnhcrPopulation } from '@/services/displacement';
-import { fetchClimateAnomalies } from '@/services/climate';
-import { enrichEventsWithExposure } from '@/services/population-exposure';
-import { buildMapUrl, debounce, loadFromStorage, parseMapUrlState, saveToStorage, ExportPanel, getCircuitBreakerCooldownInfo, isMobileDevice, setTheme, getCurrentTheme } from '@/utils';
+import { debounce, loadFromStorage, parseMapUrlState, saveToStorage, ExportPanel, isMobileDevice, getCurrentTheme, storage } from '@/utils';
 import { reverseGeocode } from '@/utils/reverse-geocode';
 import { CountryBriefPage } from '@/components/CountryBriefPage';
-import { maybeShowDownloadBanner } from '@/components/DownloadBanner';
-import { mountCommunityWidget } from '@/components/CommunityWidget';
 import { CountryTimeline, type TimelineEvent } from '@/components/CountryTimeline';
 import { escapeHtml } from '@/utils/sanitize';
 import type { ParsedMapUrlState } from '@/utils';
 import {
   MapContainer,
-  type MapView,
-  type TimeRange,
   NewsPanel,
-  MarketPanel,
-  HeatmapPanel,
-  CommoditiesPanel,
-  CryptoPanel,
   PredictionPanel,
-  MonitorPanel,
   Panel,
   SignalModal,
   PlaybackControl,
   StatusPanel,
-  EconomicPanel,
   SearchModal,
   MobileWarningModal,
   PizzIntIndicator,
-  GdeltIntelPanel,
-  LiveNewsPanel,
-  LiveWebcamsPanel,
   CIIPanel,
-  CascadePanel,
-  StrategicRiskPanel,
   StrategicPosturePanel,
   IntelligenceGapBadge,
-  TechEventsPanel,
-  ServiceStatusPanel,
-  RuntimeConfigPanel,
-  InsightsPanel,
-  TechReadinessPanel,
-  MacroSignalsPanel,
-  ETFFlowsPanel,
-  StablecoinPanel,
-  UcdpEventsPanel,
-  DisplacementPanel,
-  ClimateAnomalyPanel,
-  PopulationExposurePanel,
-  InvestmentsPanel,
   LanguageSelector,
-  MarketPulsePanel,
-  OpportunityRadarPanel,
-  FinancialGymPanel,
-  DailyBriefPanel,
 } from '@/components';
 import type { SearchResult } from '@/components/SearchModal';
+import { PanelManager } from '@/services/panel-manager';
+import { DataLoader } from '@/services/data-loader';
 import { collectStoryData } from '@/services/story-data';
 import { renderStoryToCanvas } from '@/services/story-renderer';
 import { openStoryModal } from '@/components/StoryModal';
@@ -103,35 +66,18 @@ import { STOCK_EXCHANGES, FINANCIAL_CENTERS, CENTRAL_BANKS, COMMODITY_HUBS } fro
 import { CARE_FACILITIES, ROBOTICS_LABS, CARE_STARTUPS } from '@/config/care-geo';
 import { isDesktopRuntime } from '@/services/runtime';
 import { IntelligenceServiceClient } from '@/generated/client/worldmonitor/intelligence/v1/service_client';
-import { ResearchServiceClient } from '@/generated/client/worldmonitor/research/v1/service_client';
-import { isFeatureAvailable } from '@/services/runtime-config';
-import { trackEvent, trackPanelView, trackVariantSwitch, trackThemeChanged, trackMapViewChange, trackMapLayerToggle, trackCountrySelected, trackCountryBriefOpened, trackSearchResultSelected, trackPanelToggled, trackUpdateShown, trackUpdateClicked, trackUpdateDismissed, trackCriticalBannerAction, trackDeeplinkOpened } from '@/services/analytics';
-import { invokeTauri } from '@/services/tauri-bridge';
+import { trackEvent, trackMapLayerToggle, trackCountrySelected, trackCountryBriefOpened, trackSearchResultSelected, trackCriticalBannerAction, trackDeeplinkOpened } from '@/services/analytics';
 import { getCountryAtCoordinates, hasCountryGeometry, isCoordinateInCountry, preloadCountryGeometry } from '@/services/country-geometry';
-import { initI18n, t, changeLanguage } from '@/services/i18n';
+import { initI18n, t } from '@/services/i18n';
 
-import type { MarketData, ClusteredEvent } from '@/types';
-import type { PredictionMarket } from '@/services/prediction';
+import type { ClusteredEvent } from '@/types';
 
 type IntlDisplayNamesCtor = new (
   locales: string | string[],
   options: { type: 'region' }
 ) => { of: (code: string) => string | undefined };
 
-interface DesktopRuntimeInfo {
-  os: string;
-  arch: string;
-}
-
-type UpdaterOutcome = 'no_update' | 'update_available' | 'open_failed' | 'fetch_failed';
-type DesktopBuildVariant = 'full' | 'tech' | 'finance' | 'care';
-
 const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
-const DESKTOP_BUILD_VARIANT: DesktopBuildVariant = (
-  import.meta.env.VITE_VARIANT === 'tech' || import.meta.env.VITE_VARIANT === 'finance' || import.meta.env.VITE_VARIANT === 'care'
-    ? import.meta.env.VITE_VARIANT
-    : 'full'
-);
 
 export interface CountryBriefSignals {
   protests: number;
@@ -151,10 +97,10 @@ export class App {
   private readonly PANEL_SPANS_KEY = 'worldmonitor-panel-spans';
   private map: MapContainer | null = null;
   private panels: Record<string, Panel> = {};
+  private panelManager: PanelManager | null = null;
   private newsPanels: Record<string, NewsPanel> = {};
-  private allNews: NewsItem[] = [];
-  private newsByCategory: Record<string, NewsItem[]> = {};
-  private currentTimeRange: TimeRange = '7d';
+  // allNews and newsByCategory are now managed by DataLoader
+  // currentTimeRange is now managed by DataLoader
   private monitors: Monitor[];
   private panelSettings: Record<string, PanelConfig>;
   private mapLayers: MapLayers;
@@ -166,35 +112,24 @@ export class App {
   private searchModal: SearchModal | null = null;
   private mobileWarningModal: MobileWarningModal | null = null;
   private pizzintIndicator: PizzIntIndicator | null = null;
-  private latestPredictions: PredictionMarket[] = [];
-  private latestMarkets: MarketData[] = [];
-  private latestClusters: ClusteredEvent[] = [];
+  // latestPredictions, latestMarkets, latestClusters are now managed by DataLoader
   private readonly applyTimeRangeFilterToNewsPanelsDebounced = debounce(() => {
-    this.applyTimeRangeFilterToNewsPanels();
+    this.dataLoader?.applyTimeRangeFilterToNewsPanels();
   }, 120);
   private isPlaybackMode = false;
   private initialUrlState: ParsedMapUrlState | null = null;
-  private inFlight: Set<string> = new Set();
+  // inFlight is now managed by DataLoader
   private isMobile: boolean;
-  private seenGeoAlerts: Set<string> = new Set();
+  // seenGeoAlerts is now managed by DataLoader
   private snapshotIntervalId: ReturnType<typeof setInterval> | null = null;
-  private refreshTimeoutIds: Map<string, ReturnType<typeof setTimeout>> = new Map();
-  private refreshRunners = new Map<string, { run: () => Promise<void>; intervalMs: number }>();
-  private hiddenSince = 0;
+  // refreshTimeoutIds, refreshRunners, hiddenSince are now managed by DataLoader
   private isDestroyed = false;
   private boundKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
-  private boundFullscreenHandler: (() => void) | null = null;
-  private boundResizeHandler: (() => void) | null = null;
-  private boundVisibilityHandler: (() => void) | null = null;
-  private boundDesktopExternalLinkHandler: ((e: MouseEvent) => void) | null = null;
-  private idleTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  private boundIdleResetHandler: (() => void) | null = null;
-  private isIdle = false;
-  private readonly IDLE_PAUSE_MS = 2 * 60 * 1000; // 2 minutes - pause animations when idle
+  private eventManager: EventManager | null = null;
+  private updateChecker: UpdateChecker | null = null;
   private disabledSources: Set<string> = new Set();
-  private mapFlashCache: Map<string, number> = new Map();
-  private readonly MAP_FLASH_COOLDOWN_MS = 10 * 60 * 1000;
-  private initialLoadComplete = false;
+  // mapFlashCache is now managed by DataLoader
+  // initialLoadComplete is now managed by DataLoader
   private criticalBannerEl: HTMLElement | null = null;
   private countryBriefPage: CountryBriefPage | null = null;
   private countryTimeline: CountryTimeline | null = null;
@@ -202,10 +137,8 @@ export class App {
   private pendingDeepLinkCountry: string | null = null;
   private briefRequestToken = 0;
   private readonly isDesktopApp = isDesktopRuntime();
-  private readonly UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
-  private updateCheckIntervalId: ReturnType<typeof setInterval> | null = null;
   private clockIntervalId: ReturnType<typeof setInterval> | null = null;
-  private panelDragCleanupHandlers: Array<() => void> = [];
+  private dataLoader!: DataLoader;
 
   constructor(containerId: string) {
     const el = document.getElementById(containerId);
@@ -219,17 +152,17 @@ export class App {
     const defaultLayers = this.isMobile ? MOBILE_DEFAULT_MAP_LAYERS : DEFAULT_MAP_LAYERS;
 
     // Check if variant changed - reset all settings to variant defaults
-    const storedVariant = localStorage.getItem('worldmonitor-variant');
+    const storedVariant = storage.getRaw('worldmonitor-variant');
     const currentVariant = SITE_VARIANT;
     console.log(`[App] Variant check: stored="${storedVariant}", current="${currentVariant}"`);
     if (storedVariant !== currentVariant) {
       // Variant changed - use defaults for new variant, clear old settings
       console.log('[App] Variant changed - resetting to defaults');
-      localStorage.setItem('worldmonitor-variant', currentVariant);
-      localStorage.removeItem(STORAGE_KEYS.mapLayers);
-      localStorage.removeItem(STORAGE_KEYS.panels);
-      localStorage.removeItem(this.PANEL_ORDER_KEY);
-      localStorage.removeItem(this.PANEL_SPANS_KEY);
+      storage.setRaw('worldmonitor-variant', currentVariant);
+      storage.removeRaw(STORAGE_KEYS.mapLayers);
+      storage.removeRaw(STORAGE_KEYS.panels);
+      storage.removeRaw(this.PANEL_ORDER_KEY);
+      storage.removeRaw(this.PANEL_SPANS_KEY);
       this.mapLayers = { ...defaultLayers };
       this.panelSettings = { ...DEFAULT_PANELS };
     } else {
@@ -243,8 +176,8 @@ export class App {
       // One-time migration: reorder panels for existing users (v1.9 panel layout)
       // Puts live-news, insights, strategic-posture, cii, strategic-risk at the top
       const PANEL_ORDER_MIGRATION_KEY = 'worldmonitor-panel-order-v1.9';
-      if (!localStorage.getItem(PANEL_ORDER_MIGRATION_KEY)) {
-        const savedOrder = localStorage.getItem(this.PANEL_ORDER_KEY);
+      if (!storage.getRaw(PANEL_ORDER_MIGRATION_KEY)) {
+        const savedOrder = storage.getRaw(this.PANEL_ORDER_KEY);
         if (savedOrder) {
           try {
             const order: string[] = JSON.parse(savedOrder);
@@ -258,20 +191,20 @@ export class App {
             const newOrder = liveNewsIdx !== -1 ? ['live-news'] : [];
             newOrder.push(...priorityPanels.filter(p => order.includes(p)));
             newOrder.push(...filtered);
-            localStorage.setItem(this.PANEL_ORDER_KEY, JSON.stringify(newOrder));
+            storage.setRaw(this.PANEL_ORDER_KEY, JSON.stringify(newOrder));
             console.log('[App] Migrated panel order to v1.8 layout');
           } catch {
             // Invalid saved order, will use defaults
           }
         }
-        localStorage.setItem(PANEL_ORDER_MIGRATION_KEY, 'done');
+        storage.setRaw(PANEL_ORDER_MIGRATION_KEY, 'done');
       }
 
       // Tech variant migration: move insights to top (after live-news)
       if (currentVariant === 'tech') {
         const TECH_INSIGHTS_MIGRATION_KEY = 'worldmonitor-tech-insights-top-v1';
-        if (!localStorage.getItem(TECH_INSIGHTS_MIGRATION_KEY)) {
-          const savedOrder = localStorage.getItem(this.PANEL_ORDER_KEY);
+        if (!storage.getRaw(TECH_INSIGHTS_MIGRATION_KEY)) {
+          const savedOrder = storage.getRaw(this.PANEL_ORDER_KEY);
           if (savedOrder) {
             try {
               const order: string[] = JSON.parse(savedOrder);
@@ -282,13 +215,13 @@ export class App {
               if (order.includes('live-news')) newOrder.push('live-news');
               if (order.includes('insights')) newOrder.push('insights');
               newOrder.push(...filtered);
-              localStorage.setItem(this.PANEL_ORDER_KEY, JSON.stringify(newOrder));
+              storage.setRaw(this.PANEL_ORDER_KEY, JSON.stringify(newOrder));
               console.log('[App] Tech variant: Migrated insights panel to top');
             } catch {
               // Invalid saved order, will use defaults
             }
           }
-          localStorage.setItem(TECH_INSIGHTS_MIGRATION_KEY, 'done');
+          storage.setRaw(TECH_INSIGHTS_MIGRATION_KEY, 'done');
         }
       }
     }
@@ -296,15 +229,15 @@ export class App {
     // One-time migration: clear stale panel ordering and sizing state that can
     // leave non-draggable gaps in mixed-size layouts on wide screens.
     const LAYOUT_RESET_MIGRATION_KEY = 'worldmonitor-layout-reset-v2.5';
-    if (!localStorage.getItem(LAYOUT_RESET_MIGRATION_KEY)) {
-      const hadSavedOrder = !!localStorage.getItem(this.PANEL_ORDER_KEY);
-      const hadSavedSpans = !!localStorage.getItem(this.PANEL_SPANS_KEY);
+    if (!storage.getRaw(LAYOUT_RESET_MIGRATION_KEY)) {
+      const hadSavedOrder = !!storage.getRaw(this.PANEL_ORDER_KEY);
+      const hadSavedSpans = !!storage.getRaw(this.PANEL_SPANS_KEY);
       if (hadSavedOrder || hadSavedSpans) {
-        localStorage.removeItem(this.PANEL_ORDER_KEY);
-        localStorage.removeItem(this.PANEL_SPANS_KEY);
+        storage.removeRaw(this.PANEL_ORDER_KEY);
+        storage.removeRaw(this.PANEL_SPANS_KEY);
         console.log('[App] Applied layout reset migration (v2.5): cleared panel order/spans');
       }
-      localStorage.setItem(LAYOUT_RESET_MIGRATION_KEY, 'done');
+      storage.setRaw(LAYOUT_RESET_MIGRATION_KEY, 'done');
     }
 
     // Desktop key management panel must always remain accessible in Tauri.
@@ -362,12 +295,12 @@ export class App {
       this.findingsBadge = new IntelligenceGapBadge();
       this.findingsBadge.setOnSignalClick((signal) => {
         if (this.countryBriefPage?.isVisible()) return;
-        if (localStorage.getItem('wm-settings-open') === '1') return;
+        if (storage.getRaw('wm-settings-open') === '1') return;
         this.signalModal?.showSignal(signal);
       });
       this.findingsBadge.setOnAlertClick((alert) => {
         if (this.countryBriefPage?.isVisible()) return;
-        if (localStorage.getItem('wm-settings-open') === '1') return;
+        if (storage.getRaw('wm-settings-open') === '1') return;
         this.signalModal?.showAlert(alert);
       });
     }
@@ -380,14 +313,66 @@ export class App {
     this.setupSearchModal();
     this.setupMapLayerHandlers();
     this.setupCountryIntel();
-    this.setupEventListeners();
+    // Create EventManager for global event listeners, idle detection, URL sync, etc.
+    this.eventManager = new EventManager({
+      container: this.container,
+      map: this.map,
+      isDesktopApp: this.isDesktopApp,
+      isMobile: this.isMobile,
+      callbacks: {
+        onSearchRequested: () => { this.updateSearchIndex(); this.searchModal?.open(); },
+        onSettingsOpen: () => { /* handled inline by EventManager */ },
+        onSettingsClose: () => { /* handled inline by EventManager */ },
+        onStoragePanelsChanged: (panels) => { this.panelSettings = panels; this.panelManager!.applyPanelSettings(); this.panelManager!.renderPanelToggles(); },
+        onStorageFindingsChanged: (val) => { if (this.findingsBadge) this.findingsBadge.setEnabled(val !== 'hidden'); },
+        onStorageLiveChannelsChanged: () => {
+          const panel = this.panels['live-news'];
+          if (panel && typeof (panel as unknown as { refreshChannelsFromStorage?: () => void }).refreshChannelsFromStorage === 'function') {
+            (panel as unknown as { refreshChannelsFromStorage: () => void }).refreshChannelsFromStorage();
+          }
+        },
+        onSourcesModalOpen: () => { this.panelManager!.setupSourcesModal(); },
+        onVariantSwitch: () => { /* handled inline by EventManager */ },
+        onVisibilityReturn: () => { this.dataLoader?.flushStaleRefreshes(); },
+        onFocalPointsReady: () => { (this.panels['cii'] as CIIPanel)?.refresh(true); },
+        onThemeChanged: () => { /* extra theme handling if needed */ },
+        getShareUrl: () => this.eventManager?.getShareUrl() ?? null,
+        getMapState: () => (this.map?.getState() ?? { view: 'global', zoom: 1, layers: {}, timeRange: '7d' }) as { view: string; zoom: number; layers: Record<string, boolean>; timeRange: string },
+        getMapCenter: () => (this.map?.getCenter() ?? { lat: 0, lon: 0 }) as unknown as { lat: number; lng: number },
+        getCountryBriefInfo: () => ({
+          visible: this.countryBriefPage?.isVisible() ?? false,
+          code: this.countryBriefPage?.getCode() ?? null,
+        }),
+        renderMap: () => { this.map?.render(); },
+      },
+    });
+    this.eventManager.setupEventListeners();
     // Capture ?country= BEFORE URL sync overwrites it
     const initState = parseMapUrlState(window.location.search, this.mapLayers);
     this.pendingDeepLinkCountry = initState.country ?? null;
-    this.setupUrlStateSync();
+    this.eventManager.setupUrlStateSync();
     this.syncDataFreshnessWithLayers();
+
+    // Create DataLoader with dependency injection
+    this.dataLoader = new DataLoader({
+      getMap: () => this.map,
+      getPanels: () => this.panels,
+      getNewsPanels: () => this.newsPanels,
+      getStatusPanel: () => this.statusPanel,
+      getSignalModal: () => this.signalModal,
+      getPizzintIndicator: () => this.pizzintIndicator,
+      getSearchModal: () => this.searchModal,
+      getMapLayers: () => this.mapLayers,
+      getDisabledSources: () => this.disabledSources,
+      shouldShowIntelligenceNotifications: () => this.shouldShowIntelligenceNotifications(),
+    });
+
+    // Wire DataLoader events
+    this.dataLoader.on('searchIndexDirty', () => this.updateSearchIndex());
+    this.dataLoader.on('criticalBanner', (postures) => this.renderCriticalBanner(postures));
+
     await preloadCountryGeometry();
-    await this.loadAllData();
+    await this.dataLoader.loadAllData();
 
     // Start CII learning mode after first data load
     startLearning();
@@ -403,14 +388,19 @@ export class App {
       this.map?.hideLayerToggle('cyberThreats');
     }
 
-    this.setupRefreshIntervals();
+    this.dataLoader.setupRefreshIntervals();
     this.setupSnapshotSaving();
     cleanOldSnapshots().catch((e) => console.warn('[Storage] Snapshot cleanup failed:', e));
 
     // Handle deep links for story sharing
     this.handleDeepLinks();
 
-    this.setupUpdateChecks();
+    // Create UpdateChecker for desktop update detection
+    this.updateChecker = new UpdateChecker({
+      container: this.container,
+      isDesktopApp: this.isDesktopApp,
+    });
+    this.updateChecker.setupUpdateChecks();
 
     // Track app load timing and panel count
     trackEvent('wm_app_loaded', {
@@ -419,14 +409,12 @@ export class App {
     });
 
     // Observe panel visibility for usage analytics
-    this.setupPanelViewTracking();
+    this.panelManager?.setupPanelViewTracking();
   }
 
   private handleDeepLinks(): void {
     const url = new URL(window.location.href);
-    const MAX_DEEP_LINK_RETRIES = 60;
-    const DEEP_LINK_RETRY_INTERVAL_MS = 500;
-    const DEEP_LINK_INITIAL_DELAY_MS = 2000;
+    // Deep link constants imported from @/config/constants
 
     // Check for story deep link: /story?c=UA&t=ciianalysis
     if (url.pathname === '/story' || url.searchParams.has('c')) {
@@ -445,12 +433,12 @@ export class App {
         // Wait for data to load, then open story
         let attempts = 0;
         const checkAndOpen = () => {
-          if (dataFreshness.hasSufficientData() && this.latestClusters.length > 0) {
+          if (dataFreshness.hasSufficientData() && this.dataLoader.latestClusters.length > 0) {
             this.openCountryStory(countryCode.toUpperCase(), countryName);
             return;
           }
           attempts += 1;
-          if (attempts >= MAX_DEEP_LINK_RETRIES) {
+          if (attempts >= DEEP_LINK_MAX_RETRIES) {
             this.showToast('Data not available');
             return;
           } else {
@@ -478,7 +466,7 @@ export class App {
           return;
         }
         attempts += 1;
-        if (attempts >= MAX_DEEP_LINK_RETRIES) {
+        if (attempts >= DEEP_LINK_MAX_RETRIES) {
           this.showToast('Data not available');
           return;
         } else {
@@ -487,191 +475,6 @@ export class App {
       };
       setTimeout(checkAndOpenBrief, DEEP_LINK_INITIAL_DELAY_MS);
     }
-  }
-
-  private setupPanelViewTracking(): void {
-    const viewedPanels = new Set<string>();
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
-          const id = (entry.target as HTMLElement).dataset.panel;
-          if (id && !viewedPanels.has(id)) {
-            viewedPanels.add(id);
-            trackPanelView(id);
-          }
-        }
-      }
-    }, { threshold: 0.3 });
-
-    const grid = document.getElementById('panelsGrid');
-    if (grid) {
-      for (const child of Array.from(grid.children)) {
-        if ((child as HTMLElement).dataset.panel) {
-          observer.observe(child);
-        }
-      }
-    }
-  }
-
-  private setupUpdateChecks(): void {
-    if (!this.isDesktopApp || this.isDestroyed) return;
-
-    // Run once shortly after startup, then poll every 6 hours.
-    setTimeout(() => {
-      if (this.isDestroyed) return;
-      void this.checkForUpdate();
-    }, 5000);
-
-    if (this.updateCheckIntervalId) {
-      clearInterval(this.updateCheckIntervalId);
-    }
-    this.updateCheckIntervalId = setInterval(() => {
-      if (this.isDestroyed) return;
-      void this.checkForUpdate();
-    }, this.UPDATE_CHECK_INTERVAL_MS);
-  }
-
-  private logUpdaterOutcome(outcome: UpdaterOutcome, context: Record<string, unknown> = {}): void {
-    const logger = outcome === 'open_failed' || outcome === 'fetch_failed'
-      ? console.warn
-      : console.info;
-    logger('[updater]', outcome, context);
-  }
-
-  private getDesktopBuildVariant(): DesktopBuildVariant {
-    return DESKTOP_BUILD_VARIANT;
-  }
-
-  private async checkForUpdate(): Promise<void> {
-    try {
-      const res = await fetch('https://worldmonitor.app/api/version');
-      if (!res.ok) {
-        this.logUpdaterOutcome('fetch_failed', { status: res.status });
-        return;
-      }
-      const data = await res.json();
-      const remote = data.version as string;
-      if (!remote) {
-        this.logUpdaterOutcome('fetch_failed', { reason: 'missing_remote_version' });
-        return;
-      }
-
-      const current = __APP_VERSION__;
-      if (!this.isNewerVersion(remote, current)) {
-        this.logUpdaterOutcome('no_update', { current, remote });
-        return;
-      }
-
-      const dismissKey = `wm-update-dismissed-${remote}`;
-      if (localStorage.getItem(dismissKey)) {
-        this.logUpdaterOutcome('update_available', { current, remote, dismissed: true });
-        return;
-      }
-
-      const releaseUrl = typeof data.url === 'string' && data.url
-        ? data.url
-        : 'https://github.com/koala73/worldmonitor/releases/latest';
-      this.logUpdaterOutcome('update_available', { current, remote, dismissed: false });
-      trackUpdateShown(current, remote);
-      await this.showUpdateBadge(remote, releaseUrl);
-    } catch (error) {
-      this.logUpdaterOutcome('fetch_failed', {
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  private isNewerVersion(remote: string, current: string): boolean {
-    const r = remote.split('.').map(Number);
-    const c = current.split('.').map(Number);
-    for (let i = 0; i < Math.max(r.length, c.length); i++) {
-      const rv = r[i] ?? 0;
-      const cv = c[i] ?? 0;
-      if (rv > cv) return true;
-      if (rv < cv) return false;
-    }
-    return false;
-  }
-
-  private mapDesktopDownloadPlatform(os: string, arch: string): string | null {
-    const normalizedOs = os.toLowerCase();
-    const normalizedArch = arch.toLowerCase()
-      .replace('amd64', 'x86_64')
-      .replace('x64', 'x86_64')
-      .replace('arm64', 'aarch64');
-
-    if (normalizedOs === 'windows') {
-      return normalizedArch === 'x86_64' ? 'windows-exe' : null;
-    }
-
-    if (normalizedOs === 'macos' || normalizedOs === 'darwin') {
-      if (normalizedArch === 'aarch64') return 'macos-arm64';
-      if (normalizedArch === 'x86_64') return 'macos-x64';
-      return null;
-    }
-
-    return null;
-  }
-
-  private async resolveUpdateDownloadUrl(releaseUrl: string): Promise<string> {
-    try {
-      const runtimeInfo = await invokeTauri<DesktopRuntimeInfo>('get_desktop_runtime_info');
-      const platform = this.mapDesktopDownloadPlatform(runtimeInfo.os, runtimeInfo.arch);
-      if (platform) {
-        const variant = this.getDesktopBuildVariant();
-        return `https://worldmonitor.app/api/download?platform=${platform}&variant=${variant}`;
-      }
-    } catch {
-      // Silent fallback to release page when desktop runtime info is unavailable.
-    }
-    return releaseUrl;
-  }
-
-  private async showUpdateBadge(version: string, releaseUrl: string): Promise<void> {
-    const versionSpan = this.container.querySelector('.version');
-    if (!versionSpan) return;
-    const existingBadge = this.container.querySelector<HTMLElement>('.update-badge');
-    if (existingBadge?.dataset.version === version) return;
-    existingBadge?.remove();
-
-    const url = await this.resolveUpdateDownloadUrl(releaseUrl);
-
-    const badge = document.createElement('a');
-    badge.className = 'update-badge';
-    badge.dataset.version = version;
-    badge.href = url;
-    badge.target = this.isDesktopApp ? '_self' : '_blank';
-    badge.rel = 'noopener';
-    badge.textContent = `UPDATE v${version}`;
-    badge.addEventListener('click', (e) => {
-      e.preventDefault();
-      trackUpdateClicked(version);
-      if (this.isDesktopApp) {
-        void invokeTauri<void>('open_url', { url }).catch((error) => {
-          this.logUpdaterOutcome('open_failed', {
-            url,
-            error: error instanceof Error ? error.message : String(error),
-          });
-          window.open(url, '_blank', 'noopener');
-        });
-        return;
-      }
-      window.open(url, '_blank', 'noopener');
-    });
-
-    const dismiss = document.createElement('span');
-    dismiss.className = 'update-badge-dismiss';
-    dismiss.textContent = '\u00d7';
-    dismiss.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      trackUpdateDismissed(version);
-      localStorage.setItem(`wm-update-dismissed-${version}`, '1');
-      badge.remove();
-    });
-
-    badge.appendChild(dismiss);
-    versionSpan.insertAdjacentElement('afterend', badge);
   }
 
   private startHeaderClock(): void {
@@ -710,39 +513,13 @@ export class App {
     }
   }
 
-  private async loadPizzInt(): Promise<void> {
-    try {
-      const [status, tensions] = await Promise.all([
-        fetchPizzIntStatus(),
-        fetchGdeltTensions()
-      ]);
-
-      // Hide indicator if no valid data (API returned default/empty)
-      if (status.locationsMonitored === 0) {
-        this.pizzintIndicator?.hide();
-        this.statusPanel?.updateApi('PizzINT', { status: 'error' });
-        dataFreshness.recordError('pizzint', 'No monitored locations returned');
-        return;
-      }
-
-      this.pizzintIndicator?.show();
-      this.pizzintIndicator?.updateStatus(status);
-      this.pizzintIndicator?.updateTensions(tensions);
-      this.statusPanel?.updateApi('PizzINT', { status: 'ok' });
-      dataFreshness.recordUpdate('pizzint', Math.max(status.locationsMonitored, tensions.length));
-    } catch (error) {
-      console.error('[App] PizzINT load failed:', error);
-      this.pizzintIndicator?.hide();
-      this.statusPanel?.updateApi('PizzINT', { status: 'error' });
-      dataFreshness.recordError('pizzint', String(error));
-    }
-  }
+  // loadPizzInt moved to DataLoader
 
   private setupExportPanel(): void {
     this.exportPanel = new ExportPanel(() => ({
-      news: this.latestClusters.length > 0 ? this.latestClusters : this.allNews,
-      markets: this.latestMarkets,
-      predictions: this.latestPredictions,
+      news: this.dataLoader.latestClusters.length > 0 ? this.dataLoader.latestClusters : this.dataLoader.allNews,
+      markets: this.dataLoader.latestMarkets,
+      predictions: this.dataLoader.latestPredictions,
       timestamp: Date.now(),
     }));
 
@@ -803,7 +580,7 @@ export class App {
         if (enabled) {
           this.map?.setLayerLoading('ais', true);
           initAisStream();
-          this.waitForAisData();
+          this.dataLoader.waitForAisData();
         } else {
           disconnectAisStream();
         }
@@ -812,7 +589,7 @@ export class App {
 
       // Load data when layer is enabled (if not already loaded)
       if (enabled) {
-        this.loadDataForLayer(layer);
+        this.dataLoader.loadDataForLayer(layer);
       }
     });
   }
@@ -836,7 +613,7 @@ export class App {
         } : null;
         const posturePanel = this.panels['strategic-posture'] as import('@/components/StrategicPosturePanel').StrategicPosturePanel | undefined;
         const postures = posturePanel?.getPostures() || [];
-        const data = collectStoryData(code, name, this.latestClusters, postures, this.latestPredictions, signals, convergence);
+        const data = collectStoryData(code, name, this.dataLoader.latestClusters, postures, this.dataLoader.latestPredictions, signals, convergence);
         const canvas = await renderStoryToCanvas(data);
         const dataUrl = canvas.toDataURL('image/png');
         const a = document.createElement('a');
@@ -864,7 +641,7 @@ export class App {
       this.countryTimeline?.destroy();
       this.countryTimeline = null;
       // Force URL rewrite to drop ?country= immediately
-      const shareUrl = this.getShareUrl();
+      const shareUrl = this.eventManager?.getShareUrl() ?? null;
       if (shareUrl) history.replaceState(null, '', shareUrl);
     });
   }
@@ -910,7 +687,7 @@ export class App {
     this.map?.highlightCountry(code);
 
     // Force URL to include ?country= immediately
-    const shareUrl = this.getShareUrl();
+    const shareUrl = this.eventManager?.getShareUrl() ?? null;
     if (shareUrl) history.replaceState(null, '', shareUrl);
 
     const marketClient = new MarketServiceClient('', { fetch: (...args) => globalThis.fetch(...args) });
@@ -941,7 +718,7 @@ export class App {
     // Pass evidence headlines
     const searchTerms = App.getCountrySearchTerms(country, code);
     const otherCountryTerms = App.getOtherCountryTerms(code);
-    const matchingNews = this.allNews.filter((n) => {
+    const matchingNews = this.dataLoader.allNews.filter((n) => {
       const t = n.title.toLowerCase();
       return searchTerms.some((term) => t.includes(term));
     });
@@ -1055,8 +832,8 @@ export class App {
     const inCountry = (lat: number, lon: number) => hasGeoShape && this.isInCountry(lat, lon, code);
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
-    if (this.intelligenceCache.protests?.events) {
-      for (const e of this.intelligenceCache.protests.events) {
+    if (this.dataLoader.intelligenceCache.protests?.events) {
+      for (const e of this.dataLoader.intelligenceCache.protests.events) {
         if (e.country?.toLowerCase() === countryLower || inCountry(e.lat, e.lon)) {
           events.push({
             timestamp: new Date(e.time).getTime(),
@@ -1068,8 +845,8 @@ export class App {
       }
     }
 
-    if (this.intelligenceCache.earthquakes) {
-      for (const eq of this.intelligenceCache.earthquakes) {
+    if (this.dataLoader.intelligenceCache.earthquakes) {
+      for (const eq of this.dataLoader.intelligenceCache.earthquakes) {
         if (inCountry(eq.location?.latitude ?? 0, eq.location?.longitude ?? 0) || eq.place?.toLowerCase().includes(countryLower)) {
           events.push({
             timestamp: eq.occurredAt,
@@ -1081,8 +858,8 @@ export class App {
       }
     }
 
-    if (this.intelligenceCache.military) {
-      for (const f of this.intelligenceCache.military.flights) {
+    if (this.dataLoader.intelligenceCache.military) {
+      for (const f of this.dataLoader.intelligenceCache.military.flights) {
         if (hasGeoShape ? this.isInCountry(f.lat, f.lon, code) : f.operatorCountry?.toUpperCase() === code) {
           events.push({
             timestamp: new Date(f.lastSeen).getTime(),
@@ -1092,7 +869,7 @@ export class App {
           });
         }
       }
-      for (const v of this.intelligenceCache.military.vessels) {
+      for (const v of this.dataLoader.intelligenceCache.military.vessels) {
         if (hasGeoShape ? this.isInCountry(v.lat, v.lon, code) : v.operatorCountry?.toUpperCase() === code) {
           events.push({
             timestamp: new Date(v.lastAisUpdate).getTime(),
@@ -1228,33 +1005,33 @@ export class App {
     const hasGeoShape = hasCountryGeometry(code) || !!App.COUNTRY_BOUNDS[code];
 
     let protests = 0;
-    if (this.intelligenceCache.protests?.events) {
-      protests = this.intelligenceCache.protests.events.filter((e) =>
+    if (this.dataLoader.intelligenceCache.protests?.events) {
+      protests = this.dataLoader.intelligenceCache.protests.events.filter((e) =>
         e.country?.toLowerCase() === countryLower || (hasGeoShape && this.isInCountry(e.lat, e.lon, code))
       ).length;
     }
 
     let militaryFlights = 0;
     let militaryVessels = 0;
-    if (this.intelligenceCache.military) {
-      militaryFlights = this.intelligenceCache.military.flights.filter((f) =>
+    if (this.dataLoader.intelligenceCache.military) {
+      militaryFlights = this.dataLoader.intelligenceCache.military.flights.filter((f) =>
         hasGeoShape ? this.isInCountry(f.lat, f.lon, code) : f.operatorCountry?.toUpperCase() === code
       ).length;
-      militaryVessels = this.intelligenceCache.military.vessels.filter((v) =>
+      militaryVessels = this.dataLoader.intelligenceCache.military.vessels.filter((v) =>
         hasGeoShape ? this.isInCountry(v.lat, v.lon, code) : v.operatorCountry?.toUpperCase() === code
       ).length;
     }
 
     let outages = 0;
-    if (this.intelligenceCache.outages) {
-      outages = this.intelligenceCache.outages.filter((o) =>
+    if (this.dataLoader.intelligenceCache.outages) {
+      outages = this.dataLoader.intelligenceCache.outages.filter((o) =>
         o.country?.toLowerCase() === countryLower || (hasGeoShape && this.isInCountry(o.lat, o.lon, code))
       ).length;
     }
 
     let earthquakes = 0;
-    if (this.intelligenceCache.earthquakes) {
-      earthquakes = this.intelligenceCache.earthquakes.filter((eq) => {
+    if (this.dataLoader.intelligenceCache.earthquakes) {
+      earthquakes = this.dataLoader.intelligenceCache.earthquakes.filter((eq) => {
         if (hasGeoShape) return this.isInCountry(eq.location?.latitude ?? 0, eq.location?.longitude ?? 0, code);
         return eq.place?.toLowerCase().includes(countryLower);
       }).length;
@@ -1277,7 +1054,7 @@ export class App {
   }
 
   private openCountryStory(code: string, name: string): void {
-    if (!dataFreshness.hasSufficientData() || this.latestClusters.length === 0) {
+    if (!dataFreshness.hasSufficientData() || this.dataLoader.latestClusters.length === 0) {
       this.showToast('Data still loading — try again in a moment');
       return;
     }
@@ -1291,7 +1068,7 @@ export class App {
       signalTypes: [...cluster.signalTypes],
       regionalDescriptions: regional.map(r => r.description),
     } : null;
-    const data = collectStoryData(code, name, this.latestClusters, postures, this.latestPredictions, signals, convergence);
+    const data = collectStoryData(code, name, this.dataLoader.latestClusters, postures, this.dataLoader.latestPredictions, signals, convergence);
     openStoryModal(data);
   }
 
@@ -1302,7 +1079,7 @@ export class App {
     el.textContent = msg;
     document.body.appendChild(el);
     requestAnimationFrame(() => el.classList.add('visible'));
-    setTimeout(() => { el.classList.remove('visible'); setTimeout(() => el.remove(), 300); }, 3000);
+    setTimeout(() => { el.classList.remove('visible'); setTimeout(() => el.remove(), 300); }, TOAST_DURATION_MS);
   }
 
   private shouldShowIntelligenceNotifications(): boolean {
@@ -1746,18 +1523,18 @@ export class App {
     this.searchModal.registerSource('country', this.buildCountrySearchItems());
 
     // Update news sources (use link as unique id) - index up to 500 items for better search coverage
-    const newsItems = this.allNews.slice(0, 500).map(n => ({
+    const newsItems = this.dataLoader.allNews.slice(0, 500).map(n => ({
       id: n.link,
       title: n.title,
       subtitle: n.source,
       data: n,
     }));
-    console.log(`[Search] Indexing ${newsItems.length} news items (allNews total: ${this.allNews.length})`);
+    console.log(`[Search] Indexing ${newsItems.length} news items (allNews total: ${this.dataLoader.allNews.length})`);
     this.searchModal.registerSource('news', newsItems);
 
     // Update predictions if available
-    if (this.latestPredictions.length > 0) {
-      this.searchModal.registerSource('prediction', this.latestPredictions.map(p => ({
+    if (this.dataLoader.latestPredictions.length > 0) {
+      this.searchModal.registerSource('prediction', this.dataLoader.latestPredictions.map(p => ({
         id: p.title,
         title: p.title,
         subtitle: `${Math.round(p.yesPrice)}% probability`,
@@ -1766,8 +1543,8 @@ export class App {
     }
 
     // Update markets if available
-    if (this.latestMarkets.length > 0) {
-      this.searchModal.registerSource('market', this.latestMarkets.map(m => ({
+    if (this.dataLoader.latestMarkets.length > 0) {
+      this.searchModal.registerSource('market', this.dataLoader.latestMarkets.map(m => ({
         id: m.symbol,
         title: `${m.symbol} - ${m.name}`,
         subtitle: `$${m.price?.toFixed(2) || 'N/A'}`,
@@ -1808,7 +1585,7 @@ export class App {
         this.restoreSnapshot(snapshot);
       } else {
         this.isPlaybackMode = false;
-        this.loadAllData();
+        this.dataLoader.loadAllData();
       }
     });
 
@@ -1823,15 +1600,15 @@ export class App {
       if (this.isPlaybackMode || this.isDestroyed) return;
 
       const marketPrices: Record<string, number> = {};
-      this.latestMarkets.forEach(m => {
+      this.dataLoader.latestMarkets.forEach(m => {
         if (m.price !== null) marketPrices[m.symbol] = m.price;
       });
 
       await saveSnapshot({
         timestamp: Date.now(),
-        events: this.latestClusters,
+        events: this.dataLoader.latestClusters,
         marketPrices,
-        predictions: this.latestPredictions.map(p => ({
+        predictions: this.dataLoader.latestPredictions.map(p => ({
           title: p.title,
           yesPrice: p.yesPrice
         })),
@@ -1840,7 +1617,7 @@ export class App {
     };
 
     void saveCurrentSnapshot().catch((e) => console.warn('[Snapshot] save failed:', e));
-    this.snapshotIntervalId = setInterval(() => void saveCurrentSnapshot().catch((e) => console.warn('[Snapshot] save failed:', e)), 15 * 60 * 1000);
+    this.snapshotIntervalId = setInterval(() => void saveCurrentSnapshot().catch((e) => console.warn('[Snapshot] save failed:', e)), SNAPSHOT_INTERVAL_MS);
   }
 
   private restoreSnapshot(snapshot: import('@/services/storage').DashboardSnapshot): void {
@@ -1849,7 +1626,7 @@ export class App {
     }
 
     const events = snapshot.events as ClusteredEvent[];
-    this.latestClusters = events;
+    this.dataLoader.latestClusters = events;
 
     const predictions = snapshot.predictions.map((p, i) => ({
       id: `snap-${i}`,
@@ -1859,7 +1636,7 @@ export class App {
       volume24h: 0,
       liquidity: 0,
     }));
-    this.latestPredictions = predictions;
+    this.dataLoader.latestPredictions = predictions;
     (this.panels['polymarket'] as PredictionPanel).renderPredictions(predictions);
 
     this.map?.setHotspotLevels(snapshot.hotspotLevels);
@@ -1990,8 +1767,38 @@ export class App {
       </div>
     `;
 
-    this.createPanels();
-    this.renderPanelToggles();
+    this.panelManager = new PanelManager({
+      getMap: () => this.map,
+      mapLayers: this.mapLayers,
+      panelSettings: this.panelSettings,
+      disabledSources: this.disabledSources,
+      monitors: this.monitors,
+      isMobile: this.isMobile,
+      findingsBadge: this.findingsBadge,
+      onMonitorsChanged: (monitors) => {
+        this.monitors = monitors;
+        saveToStorage(STORAGE_KEYS.monitors, monitors);
+        this.dataLoader.updateMonitorResults();
+      },
+      onRelatedAssetClick: (asset) => this.handleRelatedAssetClick(asset),
+      onRelatedAssetsFocus: (assets) => this.map?.highlightAssets(assets),
+      onRelatedAssetsClear: () => this.map?.highlightAssets(null),
+      onShareStory: (code, name) => this.openCountryStory(code, name),
+      onLocationClick: (lat, lon, zoom) => {
+        this.map?.setCenter(lat, lon, zoom);
+      },
+    });
+    this.map = this.panelManager.createPanels();
+    this.dataLoader.currentTimeRange = this.map.getTimeRange();
+    this.map.onTimeRangeChanged((range) => {
+      this.dataLoader.currentTimeRange = range;
+      this.applyTimeRangeFilterToNewsPanelsDebounced();
+    });
+    // Sync panel/news references from PanelManager
+    this.panels = this.panelManager.panels as Record<string, Panel>;
+    this.newsPanels = this.panelManager.newsPanels as Record<string, NewsPanel>;
+    this.applyInitialUrlState();
+    this.panelManager.renderPanelToggles();
   }
 
   /**
@@ -2011,7 +1818,7 @@ export class App {
 
     // Check if banner was dismissed this session
     const dismissedAt = sessionStorage.getItem('banner-dismissed');
-    if (dismissedAt && Date.now() - parseInt(dismissedAt, 10) < 30 * 60 * 1000) {
+    if (dismissedAt && Date.now() - parseInt(dismissedAt, 10) < BANNER_DISMISS_DURATION_MS) {
       return; // Stay dismissed for 30 minutes
     }
 
@@ -2084,436 +1891,34 @@ export class App {
       this.snapshotIntervalId = null;
     }
 
-    if (this.updateCheckIntervalId) {
-      clearInterval(this.updateCheckIntervalId);
-      this.updateCheckIntervalId = null;
-    }
+    // Clean up UpdateChecker
+    this.updateChecker?.destroy();
+    this.updateChecker = null;
 
     if (this.clockIntervalId) {
       clearInterval(this.clockIntervalId);
       this.clockIntervalId = null;
     }
 
-    // Clear all refresh timeouts
-    for (const timeoutId of this.refreshTimeoutIds.values()) {
-      clearTimeout(timeoutId);
-    }
-    this.refreshTimeoutIds.clear();
-    this.refreshRunners.clear();
+    // Clean up DataLoader (clears all refresh timeouts)
+    this.dataLoader?.destroy();
 
     // Remove global event listeners
     if (this.boundKeydownHandler) {
       document.removeEventListener('keydown', this.boundKeydownHandler);
       this.boundKeydownHandler = null;
     }
-    if (this.boundFullscreenHandler) {
-      document.removeEventListener('fullscreenchange', this.boundFullscreenHandler);
-      this.boundFullscreenHandler = null;
-    }
-    if (this.boundResizeHandler) {
-      window.removeEventListener('resize', this.boundResizeHandler);
-      this.boundResizeHandler = null;
-    }
-    if (this.boundVisibilityHandler) {
-      document.removeEventListener('visibilitychange', this.boundVisibilityHandler);
-      this.boundVisibilityHandler = null;
-    }
-    if (this.boundDesktopExternalLinkHandler) {
-      document.removeEventListener('click', this.boundDesktopExternalLinkHandler, true);
-      this.boundDesktopExternalLinkHandler = null;
-    }
+    // Clean up EventManager (fullscreen, resize, visibility, idle, desktop link handlers)
+    this.eventManager?.destroy();
+    this.eventManager = null;
 
-    // Clean up idle detection
-    if (this.idleTimeoutId) {
-      clearTimeout(this.idleTimeoutId);
-      this.idleTimeoutId = null;
-    }
-    if (this.boundIdleResetHandler) {
-      ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'].forEach(event => {
-        document.removeEventListener(event, this.boundIdleResetHandler!);
-      });
-      this.boundIdleResetHandler = null;
-    }
-
-    // Clean up panel drag listeners (used by mouse-based panel reordering).
-    this.panelDragCleanupHandlers.forEach((cleanup) => cleanup());
-    this.panelDragCleanupHandlers = [];
+    // Clean up panel manager (drag listeners, intersection observer, etc.)
+    this.panelManager?.destroy();
+    this.panelManager = null;
 
     // Clean up map and AIS
     this.map?.destroy();
     disconnectAisStream();
-  }
-
-  private createPanels(): void {
-    const panelsGrid = document.getElementById('panelsGrid')!;
-
-    // Initialize map in the map section
-    // Default to MENA view on mobile for better focus
-    // Uses deck.gl (WebGL) on desktop, falls back to D3/SVG on mobile
-    const mapContainer = document.getElementById('mapContainer') as HTMLElement;
-    this.map = new MapContainer(mapContainer, {
-      zoom: this.isMobile ? 2.5 : 1.0,
-      pan: { x: 0, y: 0 },  // Centered view to show full world
-      view: this.isMobile ? 'mena' : 'global',
-      layers: this.mapLayers,
-      timeRange: '7d',
-    });
-
-    // Initialize escalation service with data getters
-    this.map.initEscalationGetters();
-    this.currentTimeRange = this.map.getTimeRange();
-
-    // Create all panels
-    const politicsPanel = new NewsPanel('politics', t('panels.politics'));
-    this.attachRelatedAssetHandlers(politicsPanel);
-    this.newsPanels['politics'] = politicsPanel;
-    this.panels['politics'] = politicsPanel;
-
-    const techPanel = new NewsPanel('tech', t('panels.tech'));
-    this.attachRelatedAssetHandlers(techPanel);
-    this.newsPanels['tech'] = techPanel;
-    this.panels['tech'] = techPanel;
-
-    const financePanel = new NewsPanel('finance', t('panels.finance'));
-    this.attachRelatedAssetHandlers(financePanel);
-    this.newsPanels['finance'] = financePanel;
-    this.panels['finance'] = financePanel;
-
-    const heatmapPanel = new HeatmapPanel();
-    this.panels['heatmap'] = heatmapPanel;
-
-    const marketsPanel = new MarketPanel();
-    this.panels['markets'] = marketsPanel;
-
-    const monitorPanel = new MonitorPanel(this.monitors);
-    this.panels['monitors'] = monitorPanel;
-    monitorPanel.onChanged((monitors) => {
-      this.monitors = monitors;
-      saveToStorage(STORAGE_KEYS.monitors, monitors);
-      this.updateMonitorResults();
-    });
-
-    const commoditiesPanel = new CommoditiesPanel();
-    this.panels['commodities'] = commoditiesPanel;
-
-    const predictionPanel = new PredictionPanel();
-    this.panels['polymarket'] = predictionPanel;
-
-    const govPanel = new NewsPanel('gov', t('panels.gov'));
-    this.attachRelatedAssetHandlers(govPanel);
-    this.newsPanels['gov'] = govPanel;
-    this.panels['gov'] = govPanel;
-
-    const intelPanel = new NewsPanel('intel', t('panels.intel'));
-    this.attachRelatedAssetHandlers(intelPanel);
-    this.newsPanels['intel'] = intelPanel;
-    this.panels['intel'] = intelPanel;
-
-    const cryptoPanel = new CryptoPanel();
-    this.panels['crypto'] = cryptoPanel;
-
-    const middleeastPanel = new NewsPanel('middleeast', t('panels.middleeast'));
-    this.attachRelatedAssetHandlers(middleeastPanel);
-    this.newsPanels['middleeast'] = middleeastPanel;
-    this.panels['middleeast'] = middleeastPanel;
-
-    const layoffsPanel = new NewsPanel('layoffs', t('panels.layoffs'));
-    this.attachRelatedAssetHandlers(layoffsPanel);
-    this.newsPanels['layoffs'] = layoffsPanel;
-    this.panels['layoffs'] = layoffsPanel;
-
-    const aiPanel = new NewsPanel('ai', t('panels.ai'));
-    this.attachRelatedAssetHandlers(aiPanel);
-    this.newsPanels['ai'] = aiPanel;
-    this.panels['ai'] = aiPanel;
-
-    // Tech variant panels
-    const startupsPanel = new NewsPanel('startups', t('panels.startups'));
-    this.attachRelatedAssetHandlers(startupsPanel);
-    this.newsPanels['startups'] = startupsPanel;
-    this.panels['startups'] = startupsPanel;
-
-    const vcblogsPanel = new NewsPanel('vcblogs', t('panels.vcblogs'));
-    this.attachRelatedAssetHandlers(vcblogsPanel);
-    this.newsPanels['vcblogs'] = vcblogsPanel;
-    this.panels['vcblogs'] = vcblogsPanel;
-
-    const regionalStartupsPanel = new NewsPanel('regionalStartups', t('panels.regionalStartups'));
-    this.attachRelatedAssetHandlers(regionalStartupsPanel);
-    this.newsPanels['regionalStartups'] = regionalStartupsPanel;
-    this.panels['regionalStartups'] = regionalStartupsPanel;
-
-    const unicornsPanel = new NewsPanel('unicorns', t('panels.unicorns'));
-    this.attachRelatedAssetHandlers(unicornsPanel);
-    this.newsPanels['unicorns'] = unicornsPanel;
-    this.panels['unicorns'] = unicornsPanel;
-
-    const acceleratorsPanel = new NewsPanel('accelerators', t('panels.accelerators'));
-    this.attachRelatedAssetHandlers(acceleratorsPanel);
-    this.newsPanels['accelerators'] = acceleratorsPanel;
-    this.panels['accelerators'] = acceleratorsPanel;
-
-    const fundingPanel = new NewsPanel('funding', t('panels.funding'));
-    this.attachRelatedAssetHandlers(fundingPanel);
-    this.newsPanels['funding'] = fundingPanel;
-    this.panels['funding'] = fundingPanel;
-
-    const producthuntPanel = new NewsPanel('producthunt', t('panels.producthunt'));
-    this.attachRelatedAssetHandlers(producthuntPanel);
-    this.newsPanels['producthunt'] = producthuntPanel;
-    this.panels['producthunt'] = producthuntPanel;
-
-    const securityPanel = new NewsPanel('security', t('panels.security'));
-    this.attachRelatedAssetHandlers(securityPanel);
-    this.newsPanels['security'] = securityPanel;
-    this.panels['security'] = securityPanel;
-
-    const policyPanel = new NewsPanel('policy', t('panels.policy'));
-    this.attachRelatedAssetHandlers(policyPanel);
-    this.newsPanels['policy'] = policyPanel;
-    this.panels['policy'] = policyPanel;
-
-    const hardwarePanel = new NewsPanel('hardware', t('panels.hardware'));
-    this.attachRelatedAssetHandlers(hardwarePanel);
-    this.newsPanels['hardware'] = hardwarePanel;
-    this.panels['hardware'] = hardwarePanel;
-
-    const cloudPanel = new NewsPanel('cloud', t('panels.cloud'));
-    this.attachRelatedAssetHandlers(cloudPanel);
-    this.newsPanels['cloud'] = cloudPanel;
-    this.panels['cloud'] = cloudPanel;
-
-    const devPanel = new NewsPanel('dev', t('panels.dev'));
-    this.attachRelatedAssetHandlers(devPanel);
-    this.newsPanels['dev'] = devPanel;
-    this.panels['dev'] = devPanel;
-
-    const githubPanel = new NewsPanel('github', t('panels.github'));
-    this.attachRelatedAssetHandlers(githubPanel);
-    this.newsPanels['github'] = githubPanel;
-    this.panels['github'] = githubPanel;
-
-    const ipoPanel = new NewsPanel('ipo', t('panels.ipo'));
-    this.attachRelatedAssetHandlers(ipoPanel);
-    this.newsPanels['ipo'] = ipoPanel;
-    this.panels['ipo'] = ipoPanel;
-
-    const thinktanksPanel = new NewsPanel('thinktanks', t('panels.thinktanks'));
-    this.attachRelatedAssetHandlers(thinktanksPanel);
-    this.newsPanels['thinktanks'] = thinktanksPanel;
-    this.panels['thinktanks'] = thinktanksPanel;
-
-    const economicPanel = new EconomicPanel();
-    this.panels['economic'] = economicPanel;
-
-    // New Regional Panels
-    const africaPanel = new NewsPanel('africa', t('panels.africa'));
-    this.attachRelatedAssetHandlers(africaPanel);
-    this.newsPanels['africa'] = africaPanel;
-    this.panels['africa'] = africaPanel;
-
-    const latamPanel = new NewsPanel('latam', t('panels.latam'));
-    this.attachRelatedAssetHandlers(latamPanel);
-    this.newsPanels['latam'] = latamPanel;
-    this.panels['latam'] = latamPanel;
-
-    const asiaPanel = new NewsPanel('asia', t('panels.asia'));
-    this.attachRelatedAssetHandlers(asiaPanel);
-    this.newsPanels['asia'] = asiaPanel;
-    this.panels['asia'] = asiaPanel;
-
-    const energyPanel = new NewsPanel('energy', t('panels.energy'));
-    this.attachRelatedAssetHandlers(energyPanel);
-    this.newsPanels['energy'] = energyPanel;
-    this.panels['energy'] = energyPanel;
-
-    // Dynamically create NewsPanel instances for any FEEDS category.
-    // If a category key collides with an existing data panel key (e.g. markets),
-    // create a separate `${key}-news` panel to avoid clobbering the data panel.
-    for (const key of Object.keys(FEEDS)) {
-      if (this.newsPanels[key]) continue;
-      if (!Array.isArray((FEEDS as Record<string, unknown>)[key])) continue;
-      const panelKey = this.panels[key] && !this.newsPanels[key] ? `${key}-news` : key;
-      if (this.panels[panelKey]) continue;
-      const panelConfig = DEFAULT_PANELS[panelKey] ?? DEFAULT_PANELS[key];
-      const label = panelConfig?.name ?? key.charAt(0).toUpperCase() + key.slice(1);
-      const panel = new NewsPanel(panelKey, label);
-      this.attachRelatedAssetHandlers(panel);
-      this.newsPanels[key] = panel;
-      this.panels[panelKey] = panel;
-    }
-
-    // Geopolitical-only panels (not needed for tech variant)
-    if (SITE_VARIANT === 'full') {
-      const gdeltIntelPanel = new GdeltIntelPanel();
-      this.panels['gdelt-intel'] = gdeltIntelPanel;
-
-      const ciiPanel = new CIIPanel();
-      ciiPanel.setShareStoryHandler((code, name) => {
-        this.openCountryStory(code, name);
-      });
-      this.panels['cii'] = ciiPanel;
-
-      const cascadePanel = new CascadePanel();
-      this.panels['cascade'] = cascadePanel;
-
-      const satelliteFiresPanel = new SatelliteFiresPanel();
-      this.panels['satellite-fires'] = satelliteFiresPanel;
-
-      const strategicRiskPanel = new StrategicRiskPanel();
-      strategicRiskPanel.setLocationClickHandler((lat, lon) => {
-        this.map?.setCenter(lat, lon, 4);
-      });
-      this.panels['strategic-risk'] = strategicRiskPanel;
-
-      const strategicPosturePanel = new StrategicPosturePanel();
-      strategicPosturePanel.setLocationClickHandler((lat, lon) => {
-        console.log('[App] StrategicPosture handler called:', { lat, lon, hasMap: !!this.map });
-        this.map?.setCenter(lat, lon, 4);
-      });
-      this.panels['strategic-posture'] = strategicPosturePanel;
-
-      const ucdpEventsPanel = new UcdpEventsPanel();
-      ucdpEventsPanel.setEventClickHandler((lat, lon) => {
-        this.map?.setCenter(lat, lon, 5);
-      });
-      this.panels['ucdp-events'] = ucdpEventsPanel;
-
-      const displacementPanel = new DisplacementPanel();
-      displacementPanel.setCountryClickHandler((lat, lon) => {
-        this.map?.setCenter(lat, lon, 4);
-      });
-      this.panels['displacement'] = displacementPanel;
-
-      const climatePanel = new ClimateAnomalyPanel();
-      climatePanel.setZoneClickHandler((lat, lon) => {
-        this.map?.setCenter(lat, lon, 4);
-      });
-      this.panels['climate'] = climatePanel;
-
-      const populationExposurePanel = new PopulationExposurePanel();
-      this.panels['population-exposure'] = populationExposurePanel;
-    }
-
-    // GCC Investments Panel (finance variant)
-    if (SITE_VARIANT === 'finance') {
-      const investmentsPanel = new InvestmentsPanel((inv) => {
-        focusInvestmentOnMap(this.map, this.mapLayers, inv.lat, inv.lon);
-      });
-      this.panels['gcc-investments'] = investmentsPanel;
-    }
-
-    // Care Variant Panels
-    if (SITE_VARIANT === 'care') {
-      const marketPulsePanel = new MarketPulsePanel();
-      this.panels['marketPulse'] = marketPulsePanel;
-
-      const opportunityRadarPanel = new OpportunityRadarPanel();
-      this.panels['opportunityRadar'] = opportunityRadarPanel;
-
-      const financialGymPanel = new FinancialGymPanel();
-      this.panels['financialGym'] = financialGymPanel;
-
-      const dailyBriefPanel = new DailyBriefPanel();
-      this.panels['dailyBrief'] = dailyBriefPanel;
-    }
-
-    const liveNewsPanel = new LiveNewsPanel();
-    this.panels['live-news'] = liveNewsPanel;
-
-    const liveWebcamsPanel = new LiveWebcamsPanel();
-    this.panels['live-webcams'] = liveWebcamsPanel;
-
-    // Tech Events Panel (tech variant only - but create for all to allow toggling)
-    this.panels['events'] = new TechEventsPanel('events');
-
-    // Service Status Panel (primarily for tech variant)
-    const serviceStatusPanel = new ServiceStatusPanel();
-    this.panels['service-status'] = serviceStatusPanel;
-
-    if (this.isDesktopApp) {
-      const runtimeConfigPanel = new RuntimeConfigPanel({ mode: 'alert' });
-      this.panels['runtime-config'] = runtimeConfigPanel;
-    }
-
-    // Tech Readiness Panel (tech variant only - World Bank tech indicators)
-    const techReadinessPanel = new TechReadinessPanel();
-    this.panels['tech-readiness'] = techReadinessPanel;
-
-    // Crypto & Market Intelligence Panels
-    this.panels['macro-signals'] = new MacroSignalsPanel();
-    this.panels['etf-flows'] = new ETFFlowsPanel();
-    this.panels['stablecoins'] = new StablecoinPanel();
-
-    // AI Insights Panel (desktop only - hides itself on mobile)
-    const insightsPanel = new InsightsPanel();
-    this.panels['insights'] = insightsPanel;
-
-    // Add panels to grid in saved order
-    // Use DEFAULT_PANELS keys for variant-aware panel order
-    const defaultOrder = Object.keys(DEFAULT_PANELS).filter(k => k !== 'map');
-    const savedOrder = this.getSavedPanelOrder();
-    // Merge saved order with default to include new panels
-    let panelOrder = defaultOrder;
-    if (savedOrder.length > 0) {
-      // Add any missing panels from default that aren't in saved order
-      const missing = defaultOrder.filter(k => !savedOrder.includes(k));
-      // Remove any saved panels that no longer exist
-      const valid = savedOrder.filter(k => defaultOrder.includes(k));
-      // Insert missing panels after 'politics' (except monitors which goes at end)
-      const monitorsIdx = valid.indexOf('monitors');
-      if (monitorsIdx !== -1) valid.splice(monitorsIdx, 1); // Remove monitors temporarily
-      const insertIdx = valid.indexOf('politics') + 1 || 0;
-      const newPanels = missing.filter(k => k !== 'monitors');
-      valid.splice(insertIdx, 0, ...newPanels);
-      valid.push('monitors'); // Always put monitors last
-      panelOrder = valid;
-    }
-
-    // CRITICAL: live-news MUST be first for CSS Grid layout (spans 2 columns)
-    // Move it to position 0 if it exists and isn't already first
-    const liveNewsIdx = panelOrder.indexOf('live-news');
-    if (liveNewsIdx > 0) {
-      panelOrder.splice(liveNewsIdx, 1);
-      panelOrder.unshift('live-news');
-    }
-
-    // live-webcams MUST follow live-news (one-time migration for existing users)
-    const webcamsIdx = panelOrder.indexOf('live-webcams');
-    if (webcamsIdx !== -1 && webcamsIdx !== panelOrder.indexOf('live-news') + 1) {
-      panelOrder.splice(webcamsIdx, 1);
-      const afterNews = panelOrder.indexOf('live-news') + 1;
-      panelOrder.splice(afterNews, 0, 'live-webcams');
-    }
-
-    // Desktop configuration should stay easy to reach in Tauri builds.
-    if (this.isDesktopApp) {
-      const runtimeIdx = panelOrder.indexOf('runtime-config');
-      if (runtimeIdx > 1) {
-        panelOrder.splice(runtimeIdx, 1);
-        panelOrder.splice(1, 0, 'runtime-config');
-      } else if (runtimeIdx === -1) {
-        panelOrder.splice(1, 0, 'runtime-config');
-      }
-    }
-
-    panelOrder.forEach((key: string) => {
-      const panel = this.panels[key];
-      if (panel) {
-        const el = panel.getElement();
-        this.makeDraggable(el, key);
-        panelsGrid.appendChild(el);
-      }
-    });
-
-    this.map.onTimeRangeChanged((range) => {
-      this.currentTimeRange = range;
-      this.applyTimeRangeFilterToNewsPanelsDebounced();
-    });
-
-    this.applyPanelSettings();
-    this.applyInitialUrlState();
-
   }
 
   private applyInitialUrlState(): void {
@@ -2557,32 +1962,6 @@ export class App {
     }
   }
 
-  private getSavedPanelOrder(): string[] {
-    try {
-      const saved = localStorage.getItem(this.PANEL_ORDER_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  private savePanelOrder(): void {
-    const grid = document.getElementById('panelsGrid');
-    if (!grid) return;
-    const order = Array.from(grid.children)
-      .map((el) => (el as HTMLElement).dataset.panel)
-      .filter((key): key is string => !!key);
-    localStorage.setItem(this.PANEL_ORDER_KEY, JSON.stringify(order));
-  }
-
-  private attachRelatedAssetHandlers(panel: NewsPanel): void {
-    panel.setRelatedAssetHandlers({
-      onRelatedAssetClick: (asset) => this.handleRelatedAssetClick(asset),
-      onRelatedAssetsFocus: (assets) => this.map?.highlightAssets(assets),
-      onRelatedAssetsClear: () => this.map?.highlightAssets(null),
-    });
-  }
-
   private handleRelatedAssetClick(asset: RelatedAsset): void {
     if (!this.map) return;
 
@@ -2620,2192 +1999,4 @@ export class App {
     }
   }
 
-  private makeDraggable(el: HTMLElement, key: string): void {
-    el.dataset.panel = key;
-    let isDragging = false;
-    let dragStarted = false;
-    let startX = 0;
-    let startY = 0;
-    let rafId = 0;
-    const DRAG_THRESHOLD = 8;
-
-    const onMouseDown = (e: MouseEvent) => {
-      if (e.button !== 0) return;
-      const target = e.target as HTMLElement;
-      if (el.dataset.resizing === 'true') return;
-      if (target.classList?.contains('panel-resize-handle') || target.closest?.('.panel-resize-handle')) return;
-      if (target.closest('button, a, input, select, textarea, .panel-content')) return;
-
-      isDragging = true;
-      dragStarted = false;
-      startX = e.clientX;
-      startY = e.clientY;
-      e.preventDefault();
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      if (!dragStarted) {
-        const dx = Math.abs(e.clientX - startX);
-        const dy = Math.abs(e.clientY - startY);
-        if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) return;
-        dragStarted = true;
-        el.classList.add('dragging');
-      }
-      // Throttle to animation frame to avoid reflow storms
-      const cx = e.clientX;
-      const cy = e.clientY;
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        this.handlePanelDragMove(el, cx, cy);
-        rafId = 0;
-      });
-    };
-
-    const onMouseUp = () => {
-      if (!isDragging) return;
-      isDragging = false;
-      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
-      if (dragStarted) {
-        el.classList.remove('dragging');
-        this.savePanelOrder();
-      }
-      dragStarted = false;
-    };
-
-    el.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-
-    this.panelDragCleanupHandlers.push(() => {
-      el.removeEventListener('mousedown', onMouseDown);
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = 0;
-      }
-      isDragging = false;
-      dragStarted = false;
-      el.classList.remove('dragging');
-    });
-  }
-
-  private handlePanelDragMove(dragging: HTMLElement, clientX: number, clientY: number): void {
-    const grid = document.getElementById('panelsGrid');
-    if (!grid) return;
-
-    // Temporarily hide dragging element so elementFromPoint finds the panel beneath
-    dragging.style.pointerEvents = 'none';
-    const target = document.elementFromPoint(clientX, clientY);
-    dragging.style.pointerEvents = '';
-
-    if (!target) return;
-    const targetPanel = target.closest('.panel') as HTMLElement | null;
-    if (!targetPanel || targetPanel === dragging || targetPanel.classList.contains('hidden')) return;
-    // Ensure target is a direct child of the grid
-    if (targetPanel.parentElement !== grid) return;
-
-    const targetRect = targetPanel.getBoundingClientRect();
-    const draggingRect = dragging.getBoundingClientRect();
-
-    // Get current DOM positions
-    const children = Array.from(grid.children);
-    const dragIdx = children.indexOf(dragging);
-    const targetIdx = children.indexOf(targetPanel);
-    if (dragIdx === -1 || targetIdx === -1) return;
-
-    // Detect if panels are on the same row (tops within 30px)
-    const sameRow = Math.abs(draggingRect.top - targetRect.top) < 30;
-    const targetMid = sameRow
-      ? targetRect.left + targetRect.width / 2
-      : targetRect.top + targetRect.height / 2;
-    const cursorPos = sameRow ? clientX : clientY;
-
-    if (dragIdx < targetIdx) {
-      if (cursorPos > targetMid) {
-        grid.insertBefore(dragging, targetPanel.nextSibling);
-      }
-    } else {
-      if (cursorPos < targetMid) {
-        grid.insertBefore(dragging, targetPanel);
-      }
-    }
-  }
-
-  private setupEventListeners(): void {
-    // Search button
-    document.getElementById('searchBtn')?.addEventListener('click', () => {
-      this.updateSearchIndex();
-      this.searchModal?.open();
-    });
-
-    // Copy link button
-    document.getElementById('copyLinkBtn')?.addEventListener('click', async () => {
-      const shareUrl = this.getShareUrl();
-      if (!shareUrl) return;
-      const button = document.getElementById('copyLinkBtn');
-      try {
-        await this.copyToClipboard(shareUrl);
-        this.setCopyLinkFeedback(button, 'Copied!');
-      } catch (error) {
-        console.warn('Failed to copy share link:', error);
-        this.setCopyLinkFeedback(button, 'Copy failed');
-      }
-    });
-
-    // Settings modal
-    document.getElementById('settingsBtn')?.addEventListener('click', () => {
-      document.getElementById('settingsModal')?.classList.add('active');
-    });
-
-    // Sync panel state when settings are changed in the separate settings window
-    window.addEventListener('storage', (e) => {
-      if (e.key === STORAGE_KEYS.panels && e.newValue) {
-        try {
-          this.panelSettings = JSON.parse(e.newValue) as Record<string, PanelConfig>;
-          this.applyPanelSettings();
-          this.renderPanelToggles();
-        } catch (_) {}
-      }
-      if (e.key === 'worldmonitor-intel-findings' && this.findingsBadge) {
-        this.findingsBadge.setEnabled(e.newValue !== 'hidden');
-      }
-      if (e.key === STORAGE_KEYS.liveChannels && e.newValue) {
-        const panel = this.panels['live-news'];
-        if (panel && typeof (panel as unknown as { refreshChannelsFromStorage?: () => void }).refreshChannelsFromStorage === 'function') {
-          (panel as unknown as { refreshChannelsFromStorage: () => void }).refreshChannelsFromStorage();
-        }
-      }
-    });
-
-    document.getElementById('modalClose')?.addEventListener('click', () => {
-      document.getElementById('settingsModal')?.classList.remove('active');
-    });
-
-    document.getElementById('settingsModal')?.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement)?.classList?.contains('modal-overlay')) {
-        document.getElementById('settingsModal')?.classList.remove('active');
-      }
-    });
-
-
-    // Header theme toggle button
-    document.getElementById('headerThemeToggle')?.addEventListener('click', () => {
-      const next = getCurrentTheme() === 'dark' ? 'light' : 'dark';
-      setTheme(next);
-      this.updateHeaderThemeIcon();
-      trackThemeChanged(next);
-    });
-
-    // Sources modal
-    this.setupSourcesModal();
-
-    // Variant switcher: switch variant locally on desktop (reload with new config)
-    if (this.isDesktopApp) {
-      this.container.querySelectorAll<HTMLAnchorElement>('.variant-option').forEach(link => {
-        link.addEventListener('click', (e) => {
-          const variant = link.dataset.variant;
-          if (variant && variant !== SITE_VARIANT) {
-            e.preventDefault();
-            trackVariantSwitch(SITE_VARIANT, variant);
-            localStorage.setItem('worldmonitor-variant', variant);
-            window.location.reload();
-          }
-        });
-      });
-    }
-
-    // Fullscreen toggle
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    if (!this.isDesktopApp && fullscreenBtn) {
-      fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
-      this.boundFullscreenHandler = () => {
-        fullscreenBtn.textContent = document.fullscreenElement ? '⛶' : '⛶';
-        fullscreenBtn.classList.toggle('active', !!document.fullscreenElement);
-      };
-      document.addEventListener('fullscreenchange', this.boundFullscreenHandler);
-    }
-
-    // Region selector
-    const regionSelect = document.getElementById('regionSelect') as HTMLSelectElement;
-    regionSelect?.addEventListener('change', () => {
-      this.map?.setView(regionSelect.value as MapView);
-      trackMapViewChange(regionSelect.value);
-    });
-
-    // Language selector
-    const langSelect = document.getElementById('langSelect') as HTMLSelectElement;
-    langSelect?.addEventListener('change', () => {
-      void changeLanguage(langSelect.value);
-    });
-
-    // Window resize
-    this.boundResizeHandler = () => {
-      this.map?.render();
-    };
-    window.addEventListener('resize', this.boundResizeHandler);
-
-    // Map section resize handle
-    this.setupMapResize();
-
-    // Map pin toggle
-    this.setupMapPin();
-
-    // Pause animations when tab is hidden, unload ML models to free memory.
-    // On return, flush any data refreshes that went stale while hidden.
-    this.boundVisibilityHandler = () => {
-      document.body.classList.toggle('animations-paused', document.hidden);
-      if (document.hidden) {
-        this.hiddenSince = this.hiddenSince || Date.now();
-        mlWorker.unloadOptionalModels();
-      } else {
-        this.resetIdleTimer();
-        this.flushStaleRefreshes();
-      }
-    };
-    document.addEventListener('visibilitychange', this.boundVisibilityHandler);
-
-    // Refresh CII when focal points are ready (ensures focal point urgency is factored in)
-    window.addEventListener('focal-points-ready', () => {
-      (this.panels['cii'] as CIIPanel)?.refresh(true); // forceLocal to use focal point data
-    });
-
-    // Re-render components with baked getCSSColor() values on theme change
-    window.addEventListener('theme-changed', () => {
-      this.map?.render();
-      this.updateHeaderThemeIcon();
-    });
-
-    // Desktop: intercept external link clicks and open in system browser.
-    // Tauri WKWebView/WebView2 traps target="_blank" — links don't open otherwise.
-    if (this.isDesktopApp) {
-      if (this.boundDesktopExternalLinkHandler) {
-        document.removeEventListener('click', this.boundDesktopExternalLinkHandler, true);
-      }
-      this.boundDesktopExternalLinkHandler = (e: MouseEvent) => {
-        if (!(e.target instanceof Element)) return;
-        const anchor = e.target.closest('a[href]') as HTMLAnchorElement | null;
-        if (!anchor) return;
-        const href = anchor.href;
-        if (!href || href.startsWith('javascript:') || href === '#' || href.startsWith('#')) return;
-        try {
-          const url = new URL(href, window.location.href);
-          if (url.origin === window.location.origin) return;
-          e.preventDefault();
-          e.stopPropagation();
-          void invokeTauri<void>('open_url', { url: url.toString() }).catch(() => {
-            window.open(url.toString(), '_blank');
-          });
-        } catch { /* malformed URL — let browser handle */ }
-      };
-      document.addEventListener('click', this.boundDesktopExternalLinkHandler, true);
-    }
-
-    // Idle detection - pause animations after 2 minutes of inactivity
-    this.setupIdleDetection();
-  }
-
-  private setupIdleDetection(): void {
-    this.boundIdleResetHandler = () => {
-      // User is active - resume animations if we were idle
-      if (this.isIdle) {
-        this.isIdle = false;
-        document.body.classList.remove('animations-paused');
-      }
-      this.resetIdleTimer();
-    };
-
-    // Track user activity
-    ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'].forEach(event => {
-      document.addEventListener(event, this.boundIdleResetHandler!, { passive: true });
-    });
-
-    // Start the idle timer
-    this.resetIdleTimer();
-  }
-
-  private resetIdleTimer(): void {
-    if (this.idleTimeoutId) {
-      clearTimeout(this.idleTimeoutId);
-    }
-    this.idleTimeoutId = setTimeout(() => {
-      if (!document.hidden) {
-        this.isIdle = true;
-        document.body.classList.add('animations-paused');
-        console.log('[App] User idle - pausing animations to save resources');
-      }
-    }, this.IDLE_PAUSE_MS);
-  }
-
-  private setupUrlStateSync(): void {
-    if (!this.map) return;
-    const update = debounce(() => {
-      const shareUrl = this.getShareUrl();
-      if (!shareUrl) return;
-      history.replaceState(null, '', shareUrl);
-    }, 250);
-
-    this.map.onStateChanged(() => {
-      update();
-      // Sync header region selector with map view
-      const regionSelect = document.getElementById('regionSelect') as HTMLSelectElement;
-      if (regionSelect && this.map) {
-        const state = this.map.getState();
-        if (regionSelect.value !== state.view) {
-          regionSelect.value = state.view;
-        }
-      }
-    });
-    update();
-  }
-
-  private getShareUrl(): string | null {
-    if (!this.map) return null;
-    const state = this.map.getState();
-    const center = this.map.getCenter();
-    const baseUrl = `${window.location.origin}${window.location.pathname}`;
-    return buildMapUrl(baseUrl, {
-      view: state.view,
-      zoom: state.zoom,
-      center,
-      timeRange: state.timeRange,
-      layers: state.layers,
-      country: this.countryBriefPage?.isVisible() ? (this.countryBriefPage.getCode() ?? undefined) : undefined,
-    });
-  }
-
-  private async copyToClipboard(text: string): Promise<void> {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return;
-    }
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-  }
-
-  private setCopyLinkFeedback(button: HTMLElement | null, message: string): void {
-    if (!button) return;
-    const originalText = button.textContent ?? '';
-    button.textContent = message;
-    button.classList.add('copied');
-    window.setTimeout(() => {
-      button.textContent = originalText;
-      button.classList.remove('copied');
-    }, 1500);
-  }
-
-  private toggleFullscreen(): void {
-    if (document.fullscreenElement) {
-      try { void document.exitFullscreen()?.catch(() => {}); } catch {}
-    } else {
-      const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
-      if (el.requestFullscreen) {
-        try { void el.requestFullscreen()?.catch(() => {}); } catch {}
-      } else if (el.webkitRequestFullscreen) {
-        try { el.webkitRequestFullscreen(); } catch {}
-      }
-    }
-  }
-
-  private setupMapResize(): void {
-    const mapSection = document.getElementById('mapSection');
-    const resizeHandle = document.getElementById('mapResizeHandle');
-    if (!mapSection || !resizeHandle) return;
-
-    const getMinHeight = () => (window.innerWidth >= 2000 ? 320 : 400);
-    const getMaxHeight = () => Math.max(getMinHeight(), window.innerHeight - 60);
-
-    // Load saved height
-    const savedHeight = localStorage.getItem('map-height');
-    if (savedHeight) {
-      const numeric = Number.parseInt(savedHeight, 10);
-      if (Number.isFinite(numeric)) {
-        const clamped = Math.max(getMinHeight(), Math.min(numeric, getMaxHeight()));
-        mapSection.style.height = `${clamped}px`;
-        if (clamped !== numeric) {
-          localStorage.setItem('map-height', `${clamped}px`);
-        }
-      } else {
-        localStorage.removeItem('map-height');
-      }
-    }
-
-    let isResizing = false;
-    let startY = 0;
-    let startHeight = 0;
-
-    resizeHandle.addEventListener('mousedown', (e) => {
-      isResizing = true;
-      startY = e.clientY;
-      startHeight = mapSection.offsetHeight;
-      mapSection.classList.add('resizing');
-      document.body.style.cursor = 'ns-resize';
-      e.preventDefault();
-    });
-
-    document.addEventListener('mousemove', (e) => {
-      if (!isResizing) return;
-      const deltaY = e.clientY - startY;
-      const newHeight = Math.max(getMinHeight(), Math.min(startHeight + deltaY, getMaxHeight()));
-      mapSection.style.height = `${newHeight}px`;
-      this.map?.render();
-    });
-
-    document.addEventListener('mouseup', () => {
-      if (!isResizing) return;
-      isResizing = false;
-      mapSection.classList.remove('resizing');
-      document.body.style.cursor = '';
-      // Save height preference
-      localStorage.setItem('map-height', mapSection.style.height);
-      this.map?.render();
-    });
-  }
-
-  private setupMapPin(): void {
-    const mapSection = document.getElementById('mapSection');
-    const pinBtn = document.getElementById('mapPinBtn');
-    if (!mapSection || !pinBtn) return;
-
-    // Load saved pin state
-    const isPinned = localStorage.getItem('map-pinned') === 'true';
-    if (isPinned) {
-      mapSection.classList.add('pinned');
-      pinBtn.classList.add('active');
-    }
-
-    pinBtn.addEventListener('click', () => {
-      const nowPinned = mapSection.classList.toggle('pinned');
-      pinBtn.classList.toggle('active', nowPinned);
-      localStorage.setItem('map-pinned', String(nowPinned));
-    });
-  }
-
-  private renderPanelToggles(): void {
-    const container = document.getElementById('panelToggles')!;
-    const panelHtml = Object.entries(this.panelSettings)
-      .filter(([key]) => key !== 'runtime-config' || this.isDesktopApp)
-      .map(
-        ([key, panel]) => `
-        <div class="panel-toggle-item ${panel.enabled ? 'active' : ''}" data-panel="${key}">
-          <div class="panel-toggle-checkbox">${panel.enabled ? '✓' : ''}</div>
-          <span class="panel-toggle-label">${this.getLocalizedPanelName(key, panel.name)}</span>
-        </div>
-      `
-      )
-      .join('');
-
-    const findingsHtml = this.isMobile
-      ? ''
-      : (() => {
-        const findingsEnabled = this.findingsBadge?.isEnabled() ?? IntelligenceGapBadge.getStoredEnabledState();
-        return `
-      <div class="panel-toggle-item ${findingsEnabled ? 'active' : ''}" data-panel="intel-findings">
-        <div class="panel-toggle-checkbox">${findingsEnabled ? '✓' : ''}</div>
-        <span class="panel-toggle-label">Intelligence Findings</span>
-      </div>
-    `;
-      })();
-
-    container.innerHTML = panelHtml + findingsHtml;
-
-    container.querySelectorAll('.panel-toggle-item').forEach((item) => {
-      item.addEventListener('click', () => {
-        const panelKey = (item as HTMLElement).dataset.panel!;
-
-        if (panelKey === 'intel-findings') {
-          if (!this.findingsBadge) return;
-          const newState = !this.findingsBadge.isEnabled();
-          this.findingsBadge.setEnabled(newState);
-          trackPanelToggled('intel-findings', newState);
-          this.renderPanelToggles();
-          return;
-        }
-
-        const config = this.panelSettings[panelKey];
-        console.log('[Panel Toggle] Clicked:', panelKey, 'Current enabled:', config?.enabled);
-        if (config) {
-          config.enabled = !config.enabled;
-          trackPanelToggled(panelKey, config.enabled);
-          console.log('[Panel Toggle] New enabled:', config.enabled);
-          saveToStorage(STORAGE_KEYS.panels, this.panelSettings);
-          this.renderPanelToggles();
-          this.applyPanelSettings();
-          console.log('[Panel Toggle] After apply - config.enabled:', this.panelSettings[panelKey]?.enabled);
-        }
-      });
-    });
-  }
-
-  private getLocalizedPanelName(panelKey: string, fallback: string): string {
-    if (panelKey === 'runtime-config') {
-      return t('modals.runtimeConfig.title');
-    }
-    const key = panelKey.replace(/-([a-z])/g, (_match, group: string) => group.toUpperCase());
-    const lookup = `panels.${key}`;
-    const localized = t(lookup);
-    return localized === lookup ? fallback : localized;
-  }
-
-  private getAllSourceNames(): string[] {
-    const sources = new Set<string>();
-    Object.values(FEEDS).forEach(feeds => {
-      if (feeds) feeds.forEach(f => sources.add(f.name));
-    });
-    INTEL_SOURCES.forEach(f => sources.add(f.name));
-    return Array.from(sources).sort((a, b) => a.localeCompare(b));
-  }
-
-  private renderSourceToggles(filter = ''): void {
-    const container = document.getElementById('sourceToggles')!;
-    const allSources = this.getAllSourceNames();
-    const filterLower = filter.toLowerCase();
-    const filteredSources = filter
-      ? allSources.filter(s => s.toLowerCase().includes(filterLower))
-      : allSources;
-
-    container.innerHTML = filteredSources.map(source => {
-      const isEnabled = !this.disabledSources.has(source);
-      const escaped = escapeHtml(source);
-      return `
-        <div class="source-toggle-item ${isEnabled ? 'active' : ''}" data-source="${escaped}">
-          <div class="source-toggle-checkbox">${isEnabled ? '✓' : ''}</div>
-          <span class="source-toggle-label">${escaped}</span>
-        </div>
-      `;
-    }).join('');
-
-    container.querySelectorAll('.source-toggle-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const sourceName = (item as HTMLElement).dataset.source!;
-        if (this.disabledSources.has(sourceName)) {
-          this.disabledSources.delete(sourceName);
-        } else {
-          this.disabledSources.add(sourceName);
-        }
-        saveToStorage(STORAGE_KEYS.disabledFeeds, Array.from(this.disabledSources));
-        this.renderSourceToggles(filter);
-      });
-    });
-
-    // Update counter
-    const enabledCount = allSources.length - this.disabledSources.size;
-    const counterEl = document.getElementById('sourcesCounter');
-    if (counterEl) {
-      counterEl.textContent = t('header.sourcesEnabled', { enabled: String(enabledCount), total: String(allSources.length) });
-    }
-  }
-
-  private setupSourcesModal(): void {
-    document.getElementById('sourcesBtn')?.addEventListener('click', () => {
-      document.getElementById('sourcesModal')?.classList.add('active');
-      // Clear search and show all sources on open
-      const searchInput = document.getElementById('sourcesSearch') as HTMLInputElement | null;
-      if (searchInput) searchInput.value = '';
-      this.renderSourceToggles();
-    });
-
-    document.getElementById('sourcesModalClose')?.addEventListener('click', () => {
-      document.getElementById('sourcesModal')?.classList.remove('active');
-    });
-
-    document.getElementById('sourcesModal')?.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement)?.classList?.contains('modal-overlay')) {
-        document.getElementById('sourcesModal')?.classList.remove('active');
-      }
-    });
-
-    document.getElementById('sourcesSearch')?.addEventListener('input', (e) => {
-      const filter = (e.target as HTMLInputElement).value;
-      this.renderSourceToggles(filter);
-    });
-
-    document.getElementById('sourcesSelectAll')?.addEventListener('click', () => {
-      this.disabledSources.clear();
-      saveToStorage(STORAGE_KEYS.disabledFeeds, []);
-      const filter = (document.getElementById('sourcesSearch') as HTMLInputElement)?.value || '';
-      this.renderSourceToggles(filter);
-    });
-
-    document.getElementById('sourcesSelectNone')?.addEventListener('click', () => {
-      const allSources = this.getAllSourceNames();
-      this.disabledSources = new Set(allSources);
-      saveToStorage(STORAGE_KEYS.disabledFeeds, allSources);
-      const filter = (document.getElementById('sourcesSearch') as HTMLInputElement)?.value || '';
-      this.renderSourceToggles(filter);
-    });
-  }
-
-  private applyPanelSettings(): void {
-    Object.entries(this.panelSettings).forEach(([key, config]) => {
-      if (key === 'map') {
-        const mapSection = document.getElementById('mapSection');
-        if (mapSection) {
-          mapSection.classList.toggle('hidden', !config.enabled);
-        }
-        return;
-      }
-      const panel = this.panels[key];
-      panel?.toggle(config.enabled);
-    });
-  }
-
-  private updateHeaderThemeIcon(): void {
-    const btn = document.getElementById('headerThemeToggle');
-    if (!btn) return;
-    const isDark = getCurrentTheme() === 'dark';
-    btn.innerHTML = isDark
-      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
-      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
-  }
-
-  private async loadAllData(): Promise<void> {
-    const runGuarded = async (name: string, fn: () => Promise<void>): Promise<void> => {
-      if (this.inFlight.has(name)) return;
-      this.inFlight.add(name);
-      try {
-        await fn();
-      } catch (e) {
-        console.error(`[App] ${name} failed:`, e);
-      } finally {
-        this.inFlight.delete(name);
-      }
-    };
-
-    const tasks: Array<{ name: string; task: Promise<void> }> = [
-      { name: 'news', task: runGuarded('news', () => this.loadNews()) },
-      { name: 'markets', task: runGuarded('markets', () => this.loadMarkets()) },
-      { name: 'predictions', task: runGuarded('predictions', () => this.loadPredictions()) },
-      { name: 'pizzint', task: runGuarded('pizzint', () => this.loadPizzInt()) },
-      { name: 'fred', task: runGuarded('fred', () => this.loadFredData()) },
-      { name: 'oil', task: runGuarded('oil', () => this.loadOilAnalytics()) },
-      { name: 'spending', task: runGuarded('spending', () => this.loadGovernmentSpending()) },
-    ];
-
-    // Load intelligence signals for CII calculation (protests, military, outages)
-    // Only for geopolitical variant - tech variant doesn't need CII/focal points
-    if (SITE_VARIANT === 'full') {
-      tasks.push({ name: 'intelligence', task: runGuarded('intelligence', () => this.loadIntelligenceSignals()) });
-    }
-
-    // Conditionally load non-intelligence layers
-    // NOTE: outages, protests, military are handled by loadIntelligenceSignals() above
-    // They update the map when layers are enabled, so no duplicate tasks needed here
-    if (SITE_VARIANT === 'full') tasks.push({ name: 'firms', task: runGuarded('firms', () => this.loadFirmsData()) });
-    if (this.mapLayers.natural) tasks.push({ name: 'natural', task: runGuarded('natural', () => this.loadNatural()) });
-    if (this.mapLayers.weather) tasks.push({ name: 'weather', task: runGuarded('weather', () => this.loadWeatherAlerts()) });
-    if (this.mapLayers.ais) tasks.push({ name: 'ais', task: runGuarded('ais', () => this.loadAisSignals()) });
-    if (this.mapLayers.cables) tasks.push({ name: 'cables', task: runGuarded('cables', () => this.loadCableActivity()) });
-    if (this.mapLayers.cables) tasks.push({ name: 'cableHealth', task: runGuarded('cableHealth', () => this.loadCableHealth()) });
-    if (this.mapLayers.flights) tasks.push({ name: 'flights', task: runGuarded('flights', () => this.loadFlightDelays()) });
-    if (CYBER_LAYER_ENABLED && this.mapLayers.cyberThreats) tasks.push({ name: 'cyberThreats', task: runGuarded('cyberThreats', () => this.loadCyberThreats()) });
-    if (this.mapLayers.techEvents || SITE_VARIANT === 'tech') tasks.push({ name: 'techEvents', task: runGuarded('techEvents', () => this.loadTechEvents()) });
-
-    // Tech Readiness panel (tech variant only)
-    if (SITE_VARIANT === 'tech') {
-      tasks.push({ name: 'techReadiness', task: runGuarded('techReadiness', () => (this.panels['tech-readiness'] as TechReadinessPanel)?.refresh()) });
-    }
-
-    // Use allSettled to ensure all tasks complete and search index always updates
-    const results = await Promise.allSettled(tasks.map(t => t.task));
-
-    // Log any failures but don't block
-    results.forEach((result, idx) => {
-      if (result.status === 'rejected') {
-        console.error(`[App] ${tasks[idx]?.name} load failed:`, result.reason);
-      }
-    });
-
-    // Always update search index regardless of individual task failures
-    this.updateSearchIndex();
-  }
-
-  private async loadDataForLayer(layer: keyof MapLayers): Promise<void> {
-    if (this.inFlight.has(layer)) return;
-    this.inFlight.add(layer);
-    this.map?.setLayerLoading(layer, true);
-    try {
-      switch (layer) {
-        case 'natural':
-          await this.loadNatural();
-          break;
-        case 'fires':
-          await this.loadFirmsData();
-          break;
-        case 'weather':
-          await this.loadWeatherAlerts();
-          break;
-        case 'outages':
-          await this.loadOutages();
-          break;
-        case 'cyberThreats':
-          await this.loadCyberThreats();
-          break;
-        case 'ais':
-          await this.loadAisSignals();
-          break;
-        case 'cables':
-          await Promise.all([this.loadCableActivity(), this.loadCableHealth()]);
-          break;
-        case 'protests':
-          await this.loadProtests();
-          break;
-        case 'flights':
-          await this.loadFlightDelays();
-          break;
-        case 'military':
-          await this.loadMilitary();
-          break;
-        case 'techEvents':
-          console.log('[loadDataForLayer] Loading techEvents...');
-          await this.loadTechEvents();
-          console.log('[loadDataForLayer] techEvents loaded');
-          break;
-        case 'ucdpEvents':
-        case 'displacement':
-        case 'climate':
-          await this.loadIntelligenceSignals();
-          break;
-      }
-    } finally {
-      this.inFlight.delete(layer);
-      this.map?.setLayerLoading(layer, false);
-    }
-  }
-
-  private findFlashLocation(title: string): { lat: number; lon: number } | null {
-    const titleLower = title.toLowerCase();
-    let bestMatch: { lat: number; lon: number; matches: number } | null = null;
-
-    const countKeywordMatches = (keywords: string[] | undefined): number => {
-      if (!keywords) return 0;
-      let matches = 0;
-      for (const keyword of keywords) {
-        const cleaned = keyword.trim().toLowerCase();
-        if (cleaned.length >= 3 && titleLower.includes(cleaned)) {
-          matches++;
-        }
-      }
-      return matches;
-    };
-
-    for (const hotspot of INTEL_HOTSPOTS) {
-      const matches = countKeywordMatches(hotspot.keywords);
-      if (matches > 0 && (!bestMatch || matches > bestMatch.matches)) {
-        bestMatch = { lat: hotspot.lat, lon: hotspot.lon, matches };
-      }
-    }
-
-    for (const conflict of CONFLICT_ZONES) {
-      const matches = countKeywordMatches(conflict.keywords);
-      if (matches > 0 && (!bestMatch || matches > bestMatch.matches)) {
-        bestMatch = { lat: conflict.center[1], lon: conflict.center[0], matches };
-      }
-    }
-
-    return bestMatch;
-  }
-
-  private flashMapForNews(items: NewsItem[]): void {
-    if (!this.map || !this.initialLoadComplete) return;
-    const now = Date.now();
-
-    for (const [key, timestamp] of this.mapFlashCache.entries()) {
-      if (now - timestamp > this.MAP_FLASH_COOLDOWN_MS) {
-        this.mapFlashCache.delete(key);
-      }
-    }
-
-    for (const item of items) {
-      const cacheKey = `${item.source}|${item.link || item.title}`;
-      const lastSeen = this.mapFlashCache.get(cacheKey);
-      if (lastSeen && now - lastSeen < this.MAP_FLASH_COOLDOWN_MS) {
-        continue;
-      }
-
-      const location = this.findFlashLocation(item.title);
-      if (!location) continue;
-
-      this.map.flashLocation(location.lat, location.lon);
-      this.mapFlashCache.set(cacheKey, now);
-    }
-  }
-
-  private getTimeRangeWindowMs(range: TimeRange): number {
-    const ranges: Record<TimeRange, number> = {
-      '1h': 60 * 60 * 1000,
-      '6h': 6 * 60 * 60 * 1000,
-      '24h': 24 * 60 * 60 * 1000,
-      '48h': 48 * 60 * 60 * 1000,
-      '7d': 7 * 24 * 60 * 60 * 1000,
-      'all': Infinity,
-    };
-    return ranges[range];
-  }
-
-  private filterItemsByTimeRange(items: NewsItem[], range: TimeRange = this.currentTimeRange): NewsItem[] {
-    if (range === 'all') return items;
-    const cutoff = Date.now() - this.getTimeRangeWindowMs(range);
-    return items.filter((item) => {
-      const ts = item.pubDate instanceof Date ? item.pubDate.getTime() : new Date(item.pubDate).getTime();
-      return Number.isFinite(ts) ? ts >= cutoff : true;
-    });
-  }
-
-  private getTimeRangeLabel(range: TimeRange = this.currentTimeRange): string {
-    const labels: Record<TimeRange, string> = {
-      '1h': 'the last hour',
-      '6h': 'the last 6 hours',
-      '24h': 'the last 24 hours',
-      '48h': 'the last 48 hours',
-      '7d': 'the last 7 days',
-      'all': 'all time',
-    };
-    return labels[range];
-  }
-
-  private renderNewsForCategory(category: string, items: NewsItem[]): void {
-    this.newsByCategory[category] = items;
-    const panel = this.newsPanels[category];
-    if (!panel) return;
-    const filteredItems = this.filterItemsByTimeRange(items);
-    if (filteredItems.length === 0 && items.length > 0) {
-      panel.renderFilteredEmpty(`No items in ${this.getTimeRangeLabel()}`);
-      return;
-    }
-    panel.renderNews(filteredItems);
-  }
-
-  private applyTimeRangeFilterToNewsPanels(): void {
-    Object.entries(this.newsByCategory).forEach(([category, items]) => {
-      this.renderNewsForCategory(category, items);
-    });
-  }
-
-  private async loadNewsCategory(category: string, feeds: typeof FEEDS.politics): Promise<NewsItem[]> {
-    try {
-      const panel = this.newsPanels[category];
-      const renderIntervalMs = 100;
-      let lastRenderTime = 0;
-      let renderTimeout: ReturnType<typeof setTimeout> | null = null;
-      let pendingItems: NewsItem[] | null = null;
-
-      // Filter out disabled sources
-      const enabledFeeds = (feeds ?? []).filter(f => !this.disabledSources.has(f.name));
-      if (enabledFeeds.length === 0) {
-        delete this.newsByCategory[category];
-        if (panel) panel.showError(t('common.allSourcesDisabled'));
-        this.statusPanel?.updateFeed(category.charAt(0).toUpperCase() + category.slice(1), {
-          status: 'ok',
-          itemCount: 0,
-        });
-        return [];
-      }
-
-      const flushPendingRender = () => {
-        if (!pendingItems) return;
-        this.renderNewsForCategory(category, pendingItems);
-        pendingItems = null;
-        lastRenderTime = Date.now();
-      };
-
-      const scheduleRender = (partialItems: NewsItem[]) => {
-        if (!panel) return;
-        pendingItems = partialItems;
-        const elapsed = Date.now() - lastRenderTime;
-        if (elapsed >= renderIntervalMs) {
-          if (renderTimeout) {
-            clearTimeout(renderTimeout);
-            renderTimeout = null;
-          }
-          flushPendingRender();
-          return;
-        }
-
-        if (!renderTimeout) {
-          renderTimeout = setTimeout(() => {
-            renderTimeout = null;
-            flushPendingRender();
-          }, renderIntervalMs - elapsed);
-        }
-      };
-
-      const items = await fetchCategoryFeeds(enabledFeeds, {
-        onBatch: (partialItems) => {
-          scheduleRender(partialItems);
-          this.flashMapForNews(partialItems);
-        },
-      });
-
-      this.renderNewsForCategory(category, items);
-      if (panel) {
-        if (renderTimeout) {
-          clearTimeout(renderTimeout);
-          renderTimeout = null;
-          pendingItems = null;
-        }
-
-        if (items.length === 0) {
-          const failures = getFeedFailures();
-          const failedFeeds = enabledFeeds.filter(f => failures.has(f.name));
-          if (failedFeeds.length > 0) {
-            const names = failedFeeds.map(f => f.name).join(', ');
-            panel.showError(`${t('common.noNewsAvailable')} (${names} failed)`);
-          }
-        }
-
-        try {
-          const baseline = await updateBaseline(`news:${category}`, items.length);
-          const deviation = calculateDeviation(items.length, baseline);
-          panel.setDeviation(deviation.zScore, deviation.percentChange, deviation.level);
-        } catch (e) { console.warn(`[Baseline] news:${category} write failed:`, e); }
-      }
-
-      this.statusPanel?.updateFeed(category.charAt(0).toUpperCase() + category.slice(1), {
-        status: 'ok',
-        itemCount: items.length,
-      });
-      this.statusPanel?.updateApi('RSS2JSON', { status: 'ok' });
-
-      return items;
-    } catch (error) {
-      this.statusPanel?.updateFeed(category.charAt(0).toUpperCase() + category.slice(1), {
-        status: 'error',
-        errorMessage: String(error),
-      });
-      this.statusPanel?.updateApi('RSS2JSON', { status: 'error' });
-      delete this.newsByCategory[category];
-      return [];
-    }
-  }
-
-  private async loadNews(): Promise<void> {
-    // Build categories dynamically from whatever feeds the current variant exports
-    const categories = Object.entries(FEEDS)
-      .filter((entry): entry is [string, typeof FEEDS[keyof typeof FEEDS]] => Array.isArray(entry[1]) && entry[1].length > 0)
-      .map(([key, feeds]) => ({ key, feeds }));
-
-    // Stage category fetches to avoid startup bursts and API pressure in all variants.
-    const maxCategoryConcurrency = SITE_VARIANT === 'tech' || SITE_VARIANT === 'care' ? 4 : 5;
-    const categoryConcurrency = Math.max(1, Math.min(maxCategoryConcurrency, categories.length));
-    const categoryResults: PromiseSettledResult<NewsItem[]>[] = [];
-    for (let i = 0; i < categories.length; i += categoryConcurrency) {
-      const chunk = categories.slice(i, i + categoryConcurrency);
-      const chunkResults = await Promise.allSettled(
-        chunk.map(({ key, feeds }) => this.loadNewsCategory(key, feeds))
-      );
-      categoryResults.push(...chunkResults);
-    }
-
-    // Collect successful results
-    const collectedNews: NewsItem[] = [];
-    categoryResults.forEach((result, idx) => {
-      if (result.status === 'fulfilled') {
-        collectedNews.push(...result.value);
-      } else {
-        console.error(`[App] News category ${categories[idx]?.key} failed:`, result.reason);
-      }
-    });
-
-    // Intel (uses different source) - full variant only (defense/military news)
-    if (SITE_VARIANT === 'full') {
-      const enabledIntelSources = INTEL_SOURCES.filter(f => !this.disabledSources.has(f.name));
-      const intelPanel = this.newsPanels['intel'];
-      if (enabledIntelSources.length === 0) {
-        delete this.newsByCategory['intel'];
-        if (intelPanel) intelPanel.showError(t('common.allIntelSourcesDisabled'));
-        this.statusPanel?.updateFeed('Intel', { status: 'ok', itemCount: 0 });
-      } else {
-        const intelResult = await Promise.allSettled([fetchCategoryFeeds(enabledIntelSources)]);
-        if (intelResult[0]?.status === 'fulfilled') {
-          const intel = intelResult[0].value;
-          this.renderNewsForCategory('intel', intel);
-          if (intelPanel) {
-            try {
-              const baseline = await updateBaseline('news:intel', intel.length);
-              const deviation = calculateDeviation(intel.length, baseline);
-              intelPanel.setDeviation(deviation.zScore, deviation.percentChange, deviation.level);
-            } catch (e) { console.warn('[Baseline] news:intel write failed:', e); }
-          }
-          this.statusPanel?.updateFeed('Intel', { status: 'ok', itemCount: intel.length });
-          collectedNews.push(...intel);
-          this.flashMapForNews(intel);
-        } else {
-          delete this.newsByCategory['intel'];
-          console.error('[App] Intel feed failed:', intelResult[0]?.reason);
-        }
-      }
-    }
-
-    this.allNews = collectedNews;
-    this.initialLoadComplete = true;
-    maybeShowDownloadBanner();
-    mountCommunityWidget();
-    // Temporal baseline: report news volume
-    updateAndCheck([
-      { type: 'news', region: 'global', count: collectedNews.length },
-    ]).then(anomalies => {
-      if (anomalies.length > 0) signalAggregator.ingestTemporalAnomalies(anomalies);
-    }).catch(() => { });
-
-    // Update map hotspots
-    this.map?.updateHotspotActivity(this.allNews);
-
-    // Update monitors
-    this.updateMonitorResults();
-
-    // Update clusters for correlation analysis (hybrid: semantic + Jaccard when ML available)
-    try {
-      this.latestClusters = mlWorker.isAvailable
-        ? await clusterNewsHybrid(this.allNews)
-        : await analysisWorker.clusterNews(this.allNews);
-
-      // Update AI Insights panel with new clusters
-      if (this.latestClusters.length > 0) {
-        const insightsPanel = this.panels['insights'] as InsightsPanel | undefined;
-        insightsPanel?.updateInsights(this.latestClusters);
-      }
-
-      // Push geo-located news clusters to map
-      const geoLocated = this.latestClusters
-        .filter((c): c is typeof c & { lat: number; lon: number } => c.lat != null && c.lon != null)
-        .map(c => ({
-          lat: c.lat,
-          lon: c.lon,
-          title: c.primaryTitle,
-          threatLevel: c.threat?.level ?? 'info',
-          timestamp: c.lastUpdated,
-        }));
-      if (geoLocated.length > 0) {
-        this.map?.setNewsLocations(geoLocated);
-      }
-    } catch (error) {
-      console.error('[App] Clustering failed, clusters unchanged:', error);
-    }
-  }
-
-  private async loadMarkets(): Promise<void> {
-    try {
-      const stocksResult = await fetchMultipleStocks(MARKET_SYMBOLS, {
-        onBatch: (partialStocks) => {
-          this.latestMarkets = partialStocks;
-          (this.panels['markets'] as MarketPanel).renderMarkets(partialStocks);
-        },
-      });
-
-      const finnhubConfigMsg = 'FINNHUB_API_KEY not configured — add in Settings';
-      this.latestMarkets = stocksResult.data;
-      (this.panels['markets'] as MarketPanel).renderMarkets(stocksResult.data);
-
-      if (stocksResult.skipped) {
-        this.statusPanel?.updateApi('Finnhub', { status: 'error' });
-        if (stocksResult.data.length === 0) {
-          this.panels['markets']?.showConfigError(finnhubConfigMsg);
-        }
-        this.panels['heatmap']?.showConfigError(finnhubConfigMsg);
-      } else {
-        this.statusPanel?.updateApi('Finnhub', { status: 'ok' });
-
-        const sectorsResult = await fetchMultipleStocks(
-          SECTORS.map((s) => ({ ...s, display: s.name })),
-          {
-            onBatch: (partialSectors) => {
-              (this.panels['heatmap'] as HeatmapPanel).renderHeatmap(
-                partialSectors.map((s) => ({ name: s.name, change: s.change }))
-              );
-            },
-          }
-        );
-        (this.panels['heatmap'] as HeatmapPanel).renderHeatmap(
-          sectorsResult.data.map((s) => ({ name: s.name, change: s.change }))
-        );
-      }
-
-      const commoditiesPanel = this.panels['commodities'] as CommoditiesPanel;
-      const mapCommodity = (c: MarketData) => ({ display: c.display, price: c.price, change: c.change, sparkline: c.sparkline });
-
-      let commoditiesLoaded = false;
-      for (let attempt = 0; attempt < 3 && !commoditiesLoaded; attempt++) {
-        if (attempt > 0) {
-          commoditiesPanel.showRetrying();
-          await new Promise(r => setTimeout(r, 20_000));
-        }
-        const commoditiesResult = await fetchMultipleStocks(COMMODITIES, {
-          onBatch: (partial) => commoditiesPanel.renderCommodities(partial.map(mapCommodity)),
-        });
-        const mapped = commoditiesResult.data.map(mapCommodity);
-        if (mapped.some(d => d.price !== null)) {
-          commoditiesPanel.renderCommodities(mapped);
-          commoditiesLoaded = true;
-        }
-      }
-      if (!commoditiesLoaded) {
-        commoditiesPanel.renderCommodities([]);
-      }
-    } catch {
-      this.statusPanel?.updateApi('Finnhub', { status: 'error' });
-    }
-
-    try {
-      // Crypto with retry
-      let crypto = await fetchCrypto();
-      if (crypto.length === 0) {
-        (this.panels['crypto'] as CryptoPanel).showRetrying();
-        await new Promise(r => setTimeout(r, 20_000));
-        crypto = await fetchCrypto();
-      }
-      (this.panels['crypto'] as CryptoPanel).renderCrypto(crypto);
-      this.statusPanel?.updateApi('CoinGecko', { status: crypto.length > 0 ? 'ok' : 'error' });
-    } catch {
-      this.statusPanel?.updateApi('CoinGecko', { status: 'error' });
-    }
-  }
-
-  private async loadPredictions(): Promise<void> {
-    try {
-      const predictions = await fetchPredictions();
-      this.latestPredictions = predictions;
-      (this.panels['polymarket'] as PredictionPanel).renderPredictions(predictions);
-
-      this.statusPanel?.updateFeed('Polymarket', { status: 'ok', itemCount: predictions.length });
-      this.statusPanel?.updateApi('Polymarket', { status: 'ok' });
-      dataFreshness.recordUpdate('polymarket', predictions.length);
-      dataFreshness.recordUpdate('predictions', predictions.length);
-
-      // Run correlation analysis in background (fire-and-forget via Web Worker)
-      void this.runCorrelationAnalysis();
-    } catch (error) {
-      this.statusPanel?.updateFeed('Polymarket', { status: 'error', errorMessage: String(error) });
-      this.statusPanel?.updateApi('Polymarket', { status: 'error' });
-      dataFreshness.recordError('polymarket', String(error));
-      dataFreshness.recordError('predictions', String(error));
-    }
-  }
-
-  private async loadNatural(): Promise<void> {
-    // Load both USGS earthquakes and NASA EONET natural events in parallel
-    const [earthquakeResult, eonetResult] = await Promise.allSettled([
-      fetchEarthquakes(),
-      fetchNaturalEvents(30),
-    ]);
-
-    // Handle earthquakes (USGS)
-    if (earthquakeResult.status === 'fulfilled') {
-      this.intelligenceCache.earthquakes = earthquakeResult.value;
-      this.map?.setEarthquakes(earthquakeResult.value);
-      ingestEarthquakes(earthquakeResult.value);
-      this.statusPanel?.updateApi('USGS', { status: 'ok' });
-      dataFreshness.recordUpdate('usgs', earthquakeResult.value.length);
-    } else {
-      this.intelligenceCache.earthquakes = [];
-      this.map?.setEarthquakes([]);
-      this.statusPanel?.updateApi('USGS', { status: 'error' });
-      dataFreshness.recordError('usgs', String(earthquakeResult.reason));
-    }
-
-    // Handle natural events (EONET - storms, fires, volcanoes, etc.)
-    if (eonetResult.status === 'fulfilled') {
-      this.map?.setNaturalEvents(eonetResult.value);
-      this.statusPanel?.updateFeed('EONET', {
-        status: 'ok',
-        itemCount: eonetResult.value.length,
-      });
-      this.statusPanel?.updateApi('NASA EONET', { status: 'ok' });
-    } else {
-      this.map?.setNaturalEvents([]);
-      this.statusPanel?.updateFeed('EONET', { status: 'error', errorMessage: String(eonetResult.reason) });
-      this.statusPanel?.updateApi('NASA EONET', { status: 'error' });
-    }
-
-    // Set layer ready based on combined data
-    const hasEarthquakes = earthquakeResult.status === 'fulfilled' && earthquakeResult.value.length > 0;
-    const hasEonet = eonetResult.status === 'fulfilled' && eonetResult.value.length > 0;
-    this.map?.setLayerReady('natural', hasEarthquakes || hasEonet);
-  }
-
-  private async loadTechEvents(): Promise<void> {
-    console.log('[loadTechEvents] Called. SITE_VARIANT:', SITE_VARIANT, 'techEvents layer:', this.mapLayers.techEvents);
-    // Only load for tech variant or if techEvents layer is enabled
-    if (SITE_VARIANT !== 'tech' && !this.mapLayers.techEvents) {
-      console.log('[loadTechEvents] Skipping - not tech variant and layer disabled');
-      return;
-    }
-
-    try {
-      const client = new ResearchServiceClient('', { fetch: (...args) => globalThis.fetch(...args) });
-      const data = await client.listTechEvents({
-        type: 'conference',
-        mappable: true,
-        days: 90,
-        limit: 50,
-      });
-      if (!data.success) throw new Error(data.error || 'Unknown error');
-
-      // Transform events for map markers
-      const now = new Date();
-      const mapEvents = data.events.map((e) => ({
-        id: e.id,
-        title: e.title,
-        location: e.location,
-        lat: e.coords?.lat ?? 0,
-        lng: e.coords?.lng ?? 0,
-        country: e.coords?.country ?? '',
-        startDate: e.startDate,
-        endDate: e.endDate,
-        url: e.url,
-        daysUntil: Math.ceil((new Date(e.startDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
-      }));
-
-      this.map?.setTechEvents(mapEvents);
-      this.map?.setLayerReady('techEvents', mapEvents.length > 0);
-      this.statusPanel?.updateFeed('Tech Events', { status: 'ok', itemCount: mapEvents.length });
-
-      // Register tech events as searchable source
-      if (SITE_VARIANT === 'tech' && this.searchModal) {
-        this.searchModal.registerSource('techevent', mapEvents.map((e: { id: string; title: string; location: string; startDate: string }) => ({
-          id: e.id,
-          title: e.title,
-          subtitle: `${e.location} • ${new Date(e.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-          data: e,
-        })));
-      }
-    } catch (error) {
-      console.error('[App] Failed to load tech events:', error);
-      this.map?.setTechEvents([]);
-      this.map?.setLayerReady('techEvents', false);
-      this.statusPanel?.updateFeed('Tech Events', { status: 'error', errorMessage: String(error) });
-    }
-  }
-
-  private async loadWeatherAlerts(): Promise<void> {
-    try {
-      const alerts = await fetchWeatherAlerts();
-      this.map?.setWeatherAlerts(alerts);
-      this.map?.setLayerReady('weather', alerts.length > 0);
-      this.statusPanel?.updateFeed('Weather', { status: 'ok', itemCount: alerts.length });
-      dataFreshness.recordUpdate('weather', alerts.length);
-    } catch (error) {
-      this.map?.setLayerReady('weather', false);
-      this.statusPanel?.updateFeed('Weather', { status: 'error' });
-      dataFreshness.recordError('weather', String(error));
-    }
-  }
-
-  // Cache for intelligence data - allows CII to work even when layers are disabled
-  private intelligenceCache: {
-    outages?: InternetOutage[];
-    protests?: { events: SocialUnrestEvent[]; sources: { acled: number; gdelt: number } };
-    military?: { flights: MilitaryFlight[]; flightClusters: MilitaryFlightCluster[]; vessels: MilitaryVessel[]; vesselClusters: MilitaryVesselCluster[] };
-    earthquakes?: import('@/services/earthquakes').Earthquake[];
-    usniFleet?: import('@/types').USNIFleetReport;
-  } = {};
-  private cyberThreatsCache: CyberThreat[] | null = null;
-
-  /**
-   * Load intelligence-critical signals for CII/focal point calculation
-   * This runs ALWAYS, regardless of layer visibility
-   * Map rendering is separate and still gated by layer visibility
-   */
-  private async loadIntelligenceSignals(): Promise<void> {
-    const tasks: Promise<void>[] = [];
-
-    // Always fetch outages for CII (internet blackouts = major instability signal)
-    tasks.push((async () => {
-      try {
-        const outages = await fetchInternetOutages();
-        this.intelligenceCache.outages = outages;
-        ingestOutagesForCII(outages);
-        signalAggregator.ingestOutages(outages);
-        dataFreshness.recordUpdate('outages', outages.length);
-        // Update map only if layer is visible
-        if (this.mapLayers.outages) {
-          this.map?.setOutages(outages);
-          this.map?.setLayerReady('outages', outages.length > 0);
-          this.statusPanel?.updateFeed('NetBlocks', { status: 'ok', itemCount: outages.length });
-        }
-      } catch (error) {
-        console.error('[Intelligence] Outages fetch failed:', error);
-        dataFreshness.recordError('outages', String(error));
-      }
-    })());
-
-    // Always fetch protests for CII (unrest = core instability metric)
-    // This task is also used by UCDP deduplication, so keep it as a shared promise.
-    const protestsTask = (async (): Promise<SocialUnrestEvent[]> => {
-      try {
-        const protestData = await fetchProtestEvents();
-        this.intelligenceCache.protests = protestData;
-        ingestProtests(protestData.events);
-        ingestProtestsForCII(protestData.events);
-        signalAggregator.ingestProtests(protestData.events);
-        const protestCount = protestData.sources.acled + protestData.sources.gdelt;
-        if (protestCount > 0) dataFreshness.recordUpdate('acled', protestCount);
-        if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt', protestData.sources.gdelt);
-        if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt_doc', protestData.sources.gdelt);
-        // Update map only if layer is visible
-        if (this.mapLayers.protests) {
-          this.map?.setProtests(protestData.events);
-          this.map?.setLayerReady('protests', protestData.events.length > 0);
-          const status = getProtestStatus();
-          this.statusPanel?.updateFeed('Protests', {
-            status: 'ok',
-            itemCount: protestData.events.length,
-            errorMessage: status.acledConfigured === false ? 'ACLED not configured - using GDELT only' : undefined,
-          });
-        }
-        return protestData.events;
-      } catch (error) {
-        console.error('[Intelligence] Protests fetch failed:', error);
-        dataFreshness.recordError('acled', String(error));
-        return [];
-      }
-    })();
-    tasks.push(protestsTask.then(() => undefined));
-
-    // Fetch armed conflict events (battles, explosions, violence) for CII
-    tasks.push((async () => {
-      try {
-        const conflictData = await fetchConflictEvents();
-        ingestConflictsForCII(conflictData.events);
-        if (conflictData.count > 0) dataFreshness.recordUpdate('acled_conflict', conflictData.count);
-      } catch (error) {
-        console.error('[Intelligence] Conflict events fetch failed:', error);
-        dataFreshness.recordError('acled_conflict', String(error));
-      }
-    })());
-
-    // Fetch UCDP conflict classifications (war vs minor vs none)
-    tasks.push((async () => {
-      try {
-        const classifications = await fetchUcdpClassifications();
-        ingestUcdpForCII(classifications);
-        if (classifications.size > 0) dataFreshness.recordUpdate('ucdp', classifications.size);
-      } catch (error) {
-        console.error('[Intelligence] UCDP fetch failed:', error);
-        dataFreshness.recordError('ucdp', String(error));
-      }
-    })());
-
-    // Fetch HDX HAPI aggregated conflict data (fallback/validation)
-    tasks.push((async () => {
-      try {
-        const summaries = await fetchHapiSummary();
-        ingestHapiForCII(summaries);
-        if (summaries.size > 0) dataFreshness.recordUpdate('hapi', summaries.size);
-      } catch (error) {
-        console.error('[Intelligence] HAPI fetch failed:', error);
-        dataFreshness.recordError('hapi', String(error));
-      }
-    })());
-
-    // Always fetch military for CII (security = core instability metric)
-    tasks.push((async () => {
-      try {
-        if (isMilitaryVesselTrackingConfigured()) {
-          initMilitaryVesselStream();
-        }
-        const [flightData, vesselData] = await Promise.all([
-          fetchMilitaryFlights(),
-          fetchMilitaryVessels(),
-        ]);
-        this.intelligenceCache.military = {
-          flights: flightData.flights,
-          flightClusters: flightData.clusters,
-          vessels: vesselData.vessels,
-          vesselClusters: vesselData.clusters,
-        };
-        // Store USNI fleet report for strategic posture panel (non-blocking)
-        fetchUSNIFleetReport().then((report) => {
-          if (report) this.intelligenceCache.usniFleet = report;
-        }).catch(() => {});
-        ingestFlights(flightData.flights);
-        ingestVessels(vesselData.vessels);
-        ingestMilitaryForCII(flightData.flights, vesselData.vessels);
-        signalAggregator.ingestFlights(flightData.flights);
-        signalAggregator.ingestVessels(vesselData.vessels);
-        dataFreshness.recordUpdate('opensky', flightData.flights.length);
-        // Temporal baseline: report counts and check for anomalies
-        updateAndCheck([
-          { type: 'military_flights', region: 'global', count: flightData.flights.length },
-          { type: 'vessels', region: 'global', count: vesselData.vessels.length },
-        ]).then(anomalies => {
-          if (anomalies.length > 0) signalAggregator.ingestTemporalAnomalies(anomalies);
-        }).catch(() => { });
-        // Update map only if layer is visible
-        if (this.mapLayers.military) {
-          this.map?.setMilitaryFlights(flightData.flights, flightData.clusters);
-          this.map?.setMilitaryVessels(vesselData.vessels, vesselData.clusters);
-          this.map?.updateMilitaryForEscalation(flightData.flights, vesselData.vessels);
-          const militaryCount = flightData.flights.length + vesselData.vessels.length;
-          this.statusPanel?.updateFeed('Military', {
-            status: militaryCount > 0 ? 'ok' : 'warning',
-            itemCount: militaryCount,
-          });
-        }
-        // Detect military airlift surges and foreign presence (suppress during learning mode)
-        if (!isInLearningMode()) {
-          const surgeAlerts = analyzeFlightsForSurge(flightData.flights);
-          if (surgeAlerts.length > 0) {
-            const surgeSignals = surgeAlerts.map(surgeAlertToSignal);
-            addToSignalHistory(surgeSignals);
-            if (this.shouldShowIntelligenceNotifications()) this.signalModal?.show(surgeSignals);
-          }
-          const foreignAlerts = detectForeignMilitaryPresence(flightData.flights);
-          if (foreignAlerts.length > 0) {
-            const foreignSignals = foreignAlerts.map(foreignPresenceToSignal);
-            addToSignalHistory(foreignSignals);
-            if (this.shouldShowIntelligenceNotifications()) this.signalModal?.show(foreignSignals);
-          }
-        }
-      } catch (error) {
-        console.error('[Intelligence] Military fetch failed:', error);
-        dataFreshness.recordError('opensky', String(error));
-      }
-    })());
-
-    // Fetch UCDP georeferenced events (battles, one-sided violence, non-state conflict)
-    tasks.push((async () => {
-      try {
-        const protestEvents = await protestsTask;
-        // Retry up to 3 times — UCDP sidecar can return empty on cold start
-        let result = await fetchUcdpEvents();
-        for (let attempt = 1; attempt < 3 && !result.success; attempt++) {
-          await new Promise(r => setTimeout(r, 15_000));
-          result = await fetchUcdpEvents();
-        }
-        if (!result.success) {
-          dataFreshness.recordError('ucdp_events', 'UCDP events unavailable (retaining prior event state)');
-          return;
-        }
-        const acledEvents = protestEvents.map(e => ({
-          latitude: e.lat, longitude: e.lon, event_date: e.time.toISOString(), fatalities: e.fatalities ?? 0,
-        }));
-        const events = deduplicateAgainstAcled(result.data, acledEvents);
-        (this.panels['ucdp-events'] as UcdpEventsPanel)?.setEvents(events);
-        if (this.mapLayers.ucdpEvents) {
-          this.map?.setUcdpEvents(events);
-        }
-        if (events.length > 0) dataFreshness.recordUpdate('ucdp_events', events.length);
-      } catch (error) {
-        console.error('[Intelligence] UCDP events fetch failed:', error);
-        dataFreshness.recordError('ucdp_events', String(error));
-      }
-    })());
-
-    // Fetch UNHCR displacement data (refugees, asylum seekers, IDPs)
-    tasks.push((async () => {
-      try {
-        const unhcrResult = await fetchUnhcrPopulation();
-        if (!unhcrResult.ok) {
-          dataFreshness.recordError('unhcr', 'UNHCR displacement unavailable (retaining prior displacement state)');
-          return;
-        }
-        const data = unhcrResult.data;
-        (this.panels['displacement'] as DisplacementPanel)?.setData(data);
-        ingestDisplacementForCII(data.countries);
-        if (this.mapLayers.displacement && data.topFlows) {
-          this.map?.setDisplacementFlows(data.topFlows);
-        }
-        if (data.countries.length > 0) dataFreshness.recordUpdate('unhcr', data.countries.length);
-      } catch (error) {
-        console.error('[Intelligence] UNHCR displacement fetch failed:', error);
-        dataFreshness.recordError('unhcr', String(error));
-      }
-    })());
-
-    // Fetch climate anomalies (temperature/precipitation deviations)
-    tasks.push((async () => {
-      try {
-        const climateResult = await fetchClimateAnomalies();
-        if (!climateResult.ok) {
-          dataFreshness.recordError('climate', 'Climate anomalies unavailable (retaining prior climate state)');
-          return;
-        }
-        const anomalies = climateResult.anomalies;
-        (this.panels['climate'] as ClimateAnomalyPanel)?.setAnomalies(anomalies);
-        ingestClimateForCII(anomalies);
-        if (this.mapLayers.climate) {
-          this.map?.setClimateAnomalies(anomalies);
-        }
-        if (anomalies.length > 0) dataFreshness.recordUpdate('climate', anomalies.length);
-      } catch (error) {
-        console.error('[Intelligence] Climate anomalies fetch failed:', error);
-        dataFreshness.recordError('climate', String(error));
-      }
-    })());
-
-    await Promise.allSettled(tasks);
-
-    // Fetch population exposure estimates after upstream intelligence loads complete.
-    // This avoids race conditions where UCDP/protest data is still in-flight.
-    try {
-      const ucdpEvts = (this.panels['ucdp-events'] as UcdpEventsPanel)?.getEvents?.() || [];
-      const events = [
-        ...(this.intelligenceCache.protests?.events || []).slice(0, 10).map(e => ({
-          id: e.id, lat: e.lat, lon: e.lon, type: 'conflict' as const, name: e.title || 'Protest',
-        })),
-        ...ucdpEvts.slice(0, 10).map(e => ({
-          id: e.id, lat: e.latitude, lon: e.longitude, type: e.type_of_violence as string, name: `${e.side_a} vs ${e.side_b}`,
-        })),
-      ];
-      if (events.length > 0) {
-        const exposures = await enrichEventsWithExposure(events);
-        (this.panels['population-exposure'] as PopulationExposurePanel)?.setExposures(exposures);
-        if (exposures.length > 0) dataFreshness.recordUpdate('worldpop', exposures.length);
-      } else {
-        (this.panels['population-exposure'] as PopulationExposurePanel)?.setExposures([]);
-      }
-    } catch (error) {
-      console.error('[Intelligence] Population exposure fetch failed:', error);
-      dataFreshness.recordError('worldpop', String(error));
-    }
-
-    // Now trigger CII refresh with all intelligence data
-    (this.panels['cii'] as CIIPanel)?.refresh();
-    console.log('[Intelligence] All signals loaded for CII calculation');
-  }
-
-  private async loadOutages(): Promise<void> {
-    // Use cached data if available
-    if (this.intelligenceCache.outages) {
-      const outages = this.intelligenceCache.outages;
-      this.map?.setOutages(outages);
-      this.map?.setLayerReady('outages', outages.length > 0);
-      this.statusPanel?.updateFeed('NetBlocks', { status: 'ok', itemCount: outages.length });
-      return;
-    }
-    try {
-      const outages = await fetchInternetOutages();
-      this.intelligenceCache.outages = outages;
-      this.map?.setOutages(outages);
-      this.map?.setLayerReady('outages', outages.length > 0);
-      ingestOutagesForCII(outages);
-      signalAggregator.ingestOutages(outages);
-      this.statusPanel?.updateFeed('NetBlocks', { status: 'ok', itemCount: outages.length });
-      dataFreshness.recordUpdate('outages', outages.length);
-    } catch (error) {
-      this.map?.setLayerReady('outages', false);
-      this.statusPanel?.updateFeed('NetBlocks', { status: 'error' });
-      dataFreshness.recordError('outages', String(error));
-    }
-  }
-
-  private async loadCyberThreats(): Promise<void> {
-    if (!CYBER_LAYER_ENABLED) {
-      this.mapLayers.cyberThreats = false;
-      this.map?.setLayerReady('cyberThreats', false);
-      return;
-    }
-
-    if (this.cyberThreatsCache) {
-      this.map?.setCyberThreats(this.cyberThreatsCache);
-      this.map?.setLayerReady('cyberThreats', this.cyberThreatsCache.length > 0);
-      this.statusPanel?.updateFeed('Cyber Threats', { status: 'ok', itemCount: this.cyberThreatsCache.length });
-      return;
-    }
-
-    try {
-      const threats = await fetchCyberThreats({ limit: 500, days: 14 });
-      this.cyberThreatsCache = threats;
-      this.map?.setCyberThreats(threats);
-      this.map?.setLayerReady('cyberThreats', threats.length > 0);
-      this.statusPanel?.updateFeed('Cyber Threats', { status: 'ok', itemCount: threats.length });
-      this.statusPanel?.updateApi('Cyber Threats API', { status: 'ok' });
-      dataFreshness.recordUpdate('cyber_threats', threats.length);
-    } catch (error) {
-      this.map?.setLayerReady('cyberThreats', false);
-      this.statusPanel?.updateFeed('Cyber Threats', { status: 'error', errorMessage: String(error) });
-      this.statusPanel?.updateApi('Cyber Threats API', { status: 'error' });
-      dataFreshness.recordError('cyber_threats', String(error));
-    }
-  }
-
-  private async loadAisSignals(): Promise<void> {
-    try {
-      const { disruptions, density } = await fetchAisSignals();
-      const aisStatus = getAisStatus();
-      console.log('[Ships] Events:', { disruptions: disruptions.length, density: density.length, vessels: aisStatus.vessels });
-      this.map?.setAisData(disruptions, density);
-      signalAggregator.ingestAisDisruptions(disruptions);
-      // Temporal baseline: report AIS gap counts
-      updateAndCheck([
-        { type: 'ais_gaps', region: 'global', count: disruptions.length },
-      ]).then(anomalies => {
-        if (anomalies.length > 0) signalAggregator.ingestTemporalAnomalies(anomalies);
-      }).catch(() => { });
-
-      const hasData = disruptions.length > 0 || density.length > 0;
-      this.map?.setLayerReady('ais', hasData);
-
-      const shippingCount = disruptions.length + density.length;
-      const shippingStatus = shippingCount > 0 ? 'ok' : (aisStatus.connected ? 'warning' : 'error');
-      this.statusPanel?.updateFeed('Shipping', {
-        status: shippingStatus,
-        itemCount: shippingCount,
-        errorMessage: !aisStatus.connected && shippingCount === 0 ? 'AIS snapshot unavailable' : undefined,
-      });
-      this.statusPanel?.updateApi('AISStream', {
-        status: aisStatus.connected ? 'ok' : 'warning',
-      });
-      if (hasData) {
-        dataFreshness.recordUpdate('ais', shippingCount);
-      }
-    } catch (error) {
-      this.map?.setLayerReady('ais', false);
-      this.statusPanel?.updateFeed('Shipping', { status: 'error', errorMessage: String(error) });
-      this.statusPanel?.updateApi('AISStream', { status: 'error' });
-      dataFreshness.recordError('ais', String(error));
-    }
-  }
-
-  private waitForAisData(): void {
-    const maxAttempts = 30;
-    let attempts = 0;
-
-    const checkData = () => {
-      attempts++;
-      const status = getAisStatus();
-
-      if (status.vessels > 0 || status.connected) {
-        this.loadAisSignals();
-        this.map?.setLayerLoading('ais', false);
-        return;
-      }
-
-      if (attempts >= maxAttempts) {
-        this.map?.setLayerLoading('ais', false);
-        this.map?.setLayerReady('ais', false);
-        this.statusPanel?.updateFeed('Shipping', {
-          status: 'error',
-          errorMessage: 'Connection timeout'
-        });
-        return;
-      }
-
-      setTimeout(checkData, 1000);
-    };
-
-    checkData();
-  }
-
-  private async loadCableActivity(): Promise<void> {
-    try {
-      const activity = await fetchCableActivity();
-      this.map?.setCableActivity(activity.advisories, activity.repairShips);
-      const itemCount = activity.advisories.length + activity.repairShips.length;
-      this.statusPanel?.updateFeed('CableOps', { status: 'ok', itemCount });
-    } catch {
-      this.statusPanel?.updateFeed('CableOps', { status: 'error' });
-    }
-  }
-
-  private async loadCableHealth(): Promise<void> {
-    try {
-      const healthData = await fetchCableHealth();
-      this.map?.setCableHealth(healthData.cables);
-      const cableIds = Object.keys(healthData.cables);
-      const faultCount = cableIds.filter((id) => healthData.cables[id]?.status === 'fault').length;
-      const degradedCount = cableIds.filter((id) => healthData.cables[id]?.status === 'degraded').length;
-      this.statusPanel?.updateFeed('CableHealth', { status: 'ok', itemCount: faultCount + degradedCount });
-    } catch {
-      this.statusPanel?.updateFeed('CableHealth', { status: 'error' });
-    }
-  }
-
-  private async loadProtests(): Promise<void> {
-    // Use cached data if available (from loadIntelligenceSignals)
-    if (this.intelligenceCache.protests) {
-      const protestData = this.intelligenceCache.protests;
-      this.map?.setProtests(protestData.events);
-      this.map?.setLayerReady('protests', protestData.events.length > 0);
-      const status = getProtestStatus();
-      this.statusPanel?.updateFeed('Protests', {
-        status: 'ok',
-        itemCount: protestData.events.length,
-        errorMessage: status.acledConfigured === false ? 'ACLED not configured - using GDELT only' : undefined,
-      });
-      if (status.acledConfigured === true) {
-        this.statusPanel?.updateApi('ACLED', { status: 'ok' });
-      } else if (status.acledConfigured === null) {
-        this.statusPanel?.updateApi('ACLED', { status: 'warning' });
-      }
-      this.statusPanel?.updateApi('GDELT Doc', { status: 'ok' });
-      if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt_doc', protestData.sources.gdelt);
-      return;
-    }
-    try {
-      const protestData = await fetchProtestEvents();
-      this.intelligenceCache.protests = protestData;
-      this.map?.setProtests(protestData.events);
-      this.map?.setLayerReady('protests', protestData.events.length > 0);
-      ingestProtests(protestData.events);
-      ingestProtestsForCII(protestData.events);
-      signalAggregator.ingestProtests(protestData.events);
-      const protestCount = protestData.sources.acled + protestData.sources.gdelt;
-      if (protestCount > 0) dataFreshness.recordUpdate('acled', protestCount);
-      if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt', protestData.sources.gdelt);
-      if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt_doc', protestData.sources.gdelt);
-      (this.panels['cii'] as CIIPanel)?.refresh();
-      const status = getProtestStatus();
-      this.statusPanel?.updateFeed('Protests', {
-        status: 'ok',
-        itemCount: protestData.events.length,
-        errorMessage: status.acledConfigured === false ? 'ACLED not configured - using GDELT only' : undefined,
-      });
-      if (status.acledConfigured === true) {
-        this.statusPanel?.updateApi('ACLED', { status: 'ok' });
-      } else if (status.acledConfigured === null) {
-        this.statusPanel?.updateApi('ACLED', { status: 'warning' });
-      }
-      this.statusPanel?.updateApi('GDELT Doc', { status: 'ok' });
-    } catch (error) {
-      this.map?.setLayerReady('protests', false);
-      this.statusPanel?.updateFeed('Protests', { status: 'error', errorMessage: String(error) });
-      this.statusPanel?.updateApi('ACLED', { status: 'error' });
-      this.statusPanel?.updateApi('GDELT Doc', { status: 'error' });
-      dataFreshness.recordError('gdelt_doc', String(error));
-    }
-  }
-
-  private async loadFlightDelays(): Promise<void> {
-    try {
-      const delays = await fetchFlightDelays();
-      this.map?.setFlightDelays(delays);
-      this.map?.setLayerReady('flights', delays.length > 0);
-      this.statusPanel?.updateFeed('Flights', {
-        status: 'ok',
-        itemCount: delays.length,
-      });
-      this.statusPanel?.updateApi('FAA', { status: 'ok' });
-    } catch (error) {
-      this.map?.setLayerReady('flights', false);
-      this.statusPanel?.updateFeed('Flights', { status: 'error', errorMessage: String(error) });
-      this.statusPanel?.updateApi('FAA', { status: 'error' });
-    }
-  }
-
-  private async loadMilitary(): Promise<void> {
-    // Use cached data if available (from loadIntelligenceSignals)
-    if (this.intelligenceCache.military) {
-      const { flights, flightClusters, vessels, vesselClusters } = this.intelligenceCache.military;
-      this.map?.setMilitaryFlights(flights, flightClusters);
-      this.map?.setMilitaryVessels(vessels, vesselClusters);
-      this.map?.updateMilitaryForEscalation(flights, vessels);
-      // Fetch cached postures for banner (posture panel fetches its own data)
-      this.loadCachedPosturesForBanner();
-      const insightsPanel = this.panels['insights'] as InsightsPanel | undefined;
-      insightsPanel?.setMilitaryFlights(flights);
-      const hasData = flights.length > 0 || vessels.length > 0;
-      this.map?.setLayerReady('military', hasData);
-      const militaryCount = flights.length + vessels.length;
-      this.statusPanel?.updateFeed('Military', {
-        status: militaryCount > 0 ? 'ok' : 'warning',
-        itemCount: militaryCount,
-        errorMessage: militaryCount === 0 ? 'No military activity in view' : undefined,
-      });
-      this.statusPanel?.updateApi('OpenSky', { status: 'ok' });
-      return;
-    }
-    try {
-      if (isMilitaryVesselTrackingConfigured()) {
-        initMilitaryVesselStream();
-      }
-      const [flightData, vesselData] = await Promise.all([
-        fetchMilitaryFlights(),
-        fetchMilitaryVessels(),
-      ]);
-      this.intelligenceCache.military = {
-        flights: flightData.flights,
-        flightClusters: flightData.clusters,
-        vessels: vesselData.vessels,
-        vesselClusters: vesselData.clusters,
-      };
-      fetchUSNIFleetReport().then((report) => {
-        if (report) this.intelligenceCache.usniFleet = report;
-      }).catch(() => {});
-      this.map?.setMilitaryFlights(flightData.flights, flightData.clusters);
-      this.map?.setMilitaryVessels(vesselData.vessels, vesselData.clusters);
-      ingestFlights(flightData.flights);
-      ingestVessels(vesselData.vessels);
-      ingestMilitaryForCII(flightData.flights, vesselData.vessels);
-      signalAggregator.ingestFlights(flightData.flights);
-      signalAggregator.ingestVessels(vesselData.vessels);
-      // Temporal baseline: report counts from standalone military load
-      updateAndCheck([
-        { type: 'military_flights', region: 'global', count: flightData.flights.length },
-        { type: 'vessels', region: 'global', count: vesselData.vessels.length },
-      ]).then(anomalies => {
-        if (anomalies.length > 0) signalAggregator.ingestTemporalAnomalies(anomalies);
-      }).catch(() => { });
-      this.map?.updateMilitaryForEscalation(flightData.flights, vesselData.vessels);
-      (this.panels['cii'] as CIIPanel)?.refresh();
-      if (!isInLearningMode()) {
-        const surgeAlerts = analyzeFlightsForSurge(flightData.flights);
-        if (surgeAlerts.length > 0) {
-          const surgeSignals = surgeAlerts.map(surgeAlertToSignal);
-          addToSignalHistory(surgeSignals);
-          if (this.shouldShowIntelligenceNotifications()) this.signalModal?.show(surgeSignals);
-        }
-        const foreignAlerts = detectForeignMilitaryPresence(flightData.flights);
-        if (foreignAlerts.length > 0) {
-          const foreignSignals = foreignAlerts.map(foreignPresenceToSignal);
-          addToSignalHistory(foreignSignals);
-          if (this.shouldShowIntelligenceNotifications()) this.signalModal?.show(foreignSignals);
-        }
-      }
-
-      // Fetch cached postures for banner (posture panel fetches its own data)
-      this.loadCachedPosturesForBanner();
-      const insightsPanel = this.panels['insights'] as InsightsPanel | undefined;
-      insightsPanel?.setMilitaryFlights(flightData.flights);
-
-      const hasData = flightData.flights.length > 0 || vesselData.vessels.length > 0;
-      this.map?.setLayerReady('military', hasData);
-      const militaryCount = flightData.flights.length + vesselData.vessels.length;
-      this.statusPanel?.updateFeed('Military', {
-        status: militaryCount > 0 ? 'ok' : 'warning',
-        itemCount: militaryCount,
-        errorMessage: militaryCount === 0 ? 'No military activity in view' : undefined,
-      });
-      this.statusPanel?.updateApi('OpenSky', { status: 'ok' });
-      dataFreshness.recordUpdate('opensky', flightData.flights.length);
-    } catch (error) {
-      this.map?.setLayerReady('military', false);
-      this.statusPanel?.updateFeed('Military', { status: 'error', errorMessage: String(error) });
-      this.statusPanel?.updateApi('OpenSky', { status: 'error' });
-      dataFreshness.recordError('opensky', String(error));
-    }
-  }
-
-  /**
-   * Load cached theater postures for banner display
-   * Uses server-side cached data to avoid redundant calculation per user
-   */
-  private async loadCachedPosturesForBanner(): Promise<void> {
-    try {
-      const data = await fetchCachedTheaterPosture();
-      if (data && data.postures.length > 0) {
-        this.renderCriticalBanner(data.postures);
-        // Also update posture panel with shared data (saves a duplicate fetch)
-        const posturePanel = this.panels['strategic-posture'] as StrategicPosturePanel | undefined;
-        posturePanel?.updatePostures(data);
-      }
-    } catch (error) {
-      console.warn('[App] Failed to load cached postures for banner:', error);
-    }
-  }
-
-
-  private async loadFredData(): Promise<void> {
-    const economicPanel = this.panels['economic'] as EconomicPanel;
-    const cbInfo = getCircuitBreakerCooldownInfo('FRED Economic');
-    if (cbInfo.onCooldown) {
-      economicPanel?.setErrorState(true, `Temporarily unavailable (retry in ${cbInfo.remainingSeconds}s)`);
-      this.statusPanel?.updateApi('FRED', { status: 'error' });
-      return;
-    }
-
-    try {
-      economicPanel?.setLoading(true);
-      const data = await fetchFredData();
-
-      // Check if circuit breaker tripped after fetch
-      const postInfo = getCircuitBreakerCooldownInfo('FRED Economic');
-      if (postInfo.onCooldown) {
-        economicPanel?.setErrorState(true, `Temporarily unavailable (retry in ${postInfo.remainingSeconds}s)`);
-        this.statusPanel?.updateApi('FRED', { status: 'error' });
-        return;
-      }
-
-      if (data.length === 0) {
-        if (!isFeatureAvailable('economicFred')) {
-          economicPanel?.setErrorState(true, 'FRED_API_KEY not configured — add in Settings');
-          this.statusPanel?.updateApi('FRED', { status: 'error' });
-          return;
-        }
-        // Transient failure — quick retry once
-        economicPanel?.showRetrying();
-        await new Promise(r => setTimeout(r, 20_000));
-        const retryData = await fetchFredData();
-        if (retryData.length === 0) {
-          economicPanel?.setErrorState(true, 'FRED data temporarily unavailable — will retry');
-          this.statusPanel?.updateApi('FRED', { status: 'error' });
-          return;
-        }
-        economicPanel?.setErrorState(false);
-        economicPanel?.update(retryData);
-        this.statusPanel?.updateApi('FRED', { status: 'ok' });
-        dataFreshness.recordUpdate('economic', retryData.length);
-        return;
-      }
-
-      economicPanel?.setErrorState(false);
-      economicPanel?.update(data);
-      this.statusPanel?.updateApi('FRED', { status: 'ok' });
-      dataFreshness.recordUpdate('economic', data.length);
-    } catch {
-      if (isFeatureAvailable('economicFred')) {
-        economicPanel?.showRetrying();
-        try {
-          await new Promise(r => setTimeout(r, 20_000));
-          const retryData = await fetchFredData();
-          if (retryData.length > 0) {
-            economicPanel?.setErrorState(false);
-            economicPanel?.update(retryData);
-            this.statusPanel?.updateApi('FRED', { status: 'ok' });
-            dataFreshness.recordUpdate('economic', retryData.length);
-            return;
-          }
-        } catch { /* fall through */ }
-      }
-      this.statusPanel?.updateApi('FRED', { status: 'error' });
-      economicPanel?.setErrorState(true, 'FRED data temporarily unavailable — will retry');
-      economicPanel?.setLoading(false);
-    }
-  }
-
-  private async loadOilAnalytics(): Promise<void> {
-    const economicPanel = this.panels['economic'] as EconomicPanel;
-    try {
-      const data = await fetchOilAnalytics();
-      economicPanel?.updateOil(data);
-      const hasData = !!(data.wtiPrice || data.brentPrice || data.usProduction || data.usInventory);
-      this.statusPanel?.updateApi('EIA', { status: hasData ? 'ok' : 'error' });
-      if (hasData) {
-        const metricCount = [data.wtiPrice, data.brentPrice, data.usProduction, data.usInventory].filter(Boolean).length;
-        dataFreshness.recordUpdate('oil', metricCount || 1);
-      } else {
-        dataFreshness.recordError('oil', 'Oil analytics returned no values');
-      }
-    } catch (e) {
-      console.error('[App] Oil analytics failed:', e);
-      this.statusPanel?.updateApi('EIA', { status: 'error' });
-      dataFreshness.recordError('oil', String(e));
-    }
-  }
-
-  private async loadGovernmentSpending(): Promise<void> {
-    const economicPanel = this.panels['economic'] as EconomicPanel;
-    try {
-      const data = await fetchRecentAwards({ daysBack: 7, limit: 15 });
-      economicPanel?.updateSpending(data);
-      this.statusPanel?.updateApi('USASpending', { status: data.awards.length > 0 ? 'ok' : 'error' });
-      if (data.awards.length > 0) {
-        dataFreshness.recordUpdate('spending', data.awards.length);
-      } else {
-        dataFreshness.recordError('spending', 'No awards returned');
-      }
-    } catch (e) {
-      console.error('[App] Government spending failed:', e);
-      this.statusPanel?.updateApi('USASpending', { status: 'error' });
-      dataFreshness.recordError('spending', String(e));
-    }
-  }
-
-  private updateMonitorResults(): void {
-    const monitorPanel = this.panels['monitors'] as MonitorPanel;
-    monitorPanel.renderResults(this.allNews);
-  }
-
-  private async runCorrelationAnalysis(): Promise<void> {
-    try {
-      // Ensure we have clusters (hybrid: semantic + Jaccard when ML available)
-      if (this.latestClusters.length === 0 && this.allNews.length > 0) {
-        this.latestClusters = mlWorker.isAvailable
-          ? await clusterNewsHybrid(this.allNews)
-          : await analysisWorker.clusterNews(this.allNews);
-      }
-
-      // Ingest news clusters for CII
-      if (this.latestClusters.length > 0) {
-        ingestNewsForCII(this.latestClusters);
-        dataFreshness.recordUpdate('gdelt', this.latestClusters.length);
-        (this.panels['cii'] as CIIPanel)?.refresh();
-      }
-
-      // Run correlation analysis off main thread via Web Worker
-      const signals = await analysisWorker.analyzeCorrelations(
-        this.latestClusters,
-        this.latestPredictions,
-        this.latestMarkets
-      );
-
-      // Detect geographic convergence (suppress during learning mode)
-      let geoSignals: ReturnType<typeof geoConvergenceToSignal>[] = [];
-      if (!isInLearningMode()) {
-        const geoAlerts = detectGeoConvergence(this.seenGeoAlerts);
-        geoSignals = geoAlerts.map(geoConvergenceToSignal);
-      }
-
-      const keywordSpikeSignals = drainTrendingSignals();
-      const allSignals = [...signals, ...geoSignals, ...keywordSpikeSignals];
-      if (allSignals.length > 0) {
-        addToSignalHistory(allSignals);
-        if (this.shouldShowIntelligenceNotifications()) this.signalModal?.show(allSignals);
-      }
-    } catch (error) {
-      console.error('[App] Correlation analysis failed:', error);
-    }
-  }
-
-  private async loadFirmsData(): Promise<void> {
-    try {
-      const fireResult = await fetchAllFires(1);
-      if (fireResult.skipped) {
-        this.panels['satellite-fires']?.showConfigError('NASA_FIRMS_API_KEY not configured — add in Settings');
-        this.statusPanel?.updateApi('FIRMS', { status: 'error' });
-        return;
-      }
-      const { regions, totalCount } = fireResult;
-      if (totalCount > 0) {
-        const flat = flattenFires(regions);
-        const stats = computeRegionStats(regions);
-
-        // Feed signal aggregator
-        signalAggregator.ingestSatelliteFires(flat.map(f => ({
-          lat: f.location?.latitude ?? 0,
-          lon: f.location?.longitude ?? 0,
-          brightness: f.brightness,
-          frp: f.frp,
-          region: f.region,
-          acq_date: new Date(f.detectedAt).toISOString().slice(0, 10),
-        })));
-
-        // Feed map layer
-        this.map?.setFires(toMapFires(flat));
-
-        // Feed panel
-        (this.panels['satellite-fires'] as SatelliteFiresPanel)?.update(stats, totalCount);
-
-        dataFreshness.recordUpdate('firms', totalCount);
-
-        // Report to temporal baseline (fire-and-forget)
-        updateAndCheck([
-          { type: 'satellite_fires', region: 'global', count: totalCount },
-        ]).then(anomalies => {
-          if (anomalies.length > 0) {
-            signalAggregator.ingestTemporalAnomalies(anomalies);
-          }
-        }).catch(() => { });
-      } else {
-        // Still update panel so it exits loading spinner
-        (this.panels['satellite-fires'] as SatelliteFiresPanel)?.update([], 0);
-      }
-      this.statusPanel?.updateApi('FIRMS', { status: 'ok' });
-    } catch (e) {
-      console.warn('[App] FIRMS load failed:', e);
-      (this.panels['satellite-fires'] as SatelliteFiresPanel)?.update([], 0);
-      this.statusPanel?.updateApi('FIRMS', { status: 'error' });
-      dataFreshness.recordError('firms', String(e));
-    }
-  }
-
-  private scheduleRefresh(
-    name: string,
-    fn: () => Promise<void>,
-    intervalMs: number,
-    condition?: () => boolean
-  ): void {
-    const HIDDEN_REFRESH_MULTIPLIER = 4;
-    const JITTER_FRACTION = 0.1;
-    const MIN_REFRESH_MS = 1000;
-    const computeDelay = (baseMs: number, isHidden: boolean) => {
-      const adjusted = baseMs * (isHidden ? HIDDEN_REFRESH_MULTIPLIER : 1);
-      const jitterRange = adjusted * JITTER_FRACTION;
-      const jittered = adjusted + (Math.random() * 2 - 1) * jitterRange;
-      return Math.max(MIN_REFRESH_MS, Math.round(jittered));
-    };
-    const scheduleNext = (delay: number) => {
-      if (this.isDestroyed) return;
-      const timeoutId = setTimeout(run, delay);
-      this.refreshTimeoutIds.set(name, timeoutId);
-    };
-    const run = async () => {
-      if (this.isDestroyed) return;
-      const isHidden = document.visibilityState === 'hidden';
-      if (isHidden) {
-        scheduleNext(computeDelay(intervalMs, true));
-        return;
-      }
-      if (condition && !condition()) {
-        scheduleNext(computeDelay(intervalMs, false));
-        return;
-      }
-      if (this.inFlight.has(name)) {
-        scheduleNext(computeDelay(intervalMs, false));
-        return;
-      }
-      this.inFlight.add(name);
-      try {
-        await fn();
-      } catch (e) {
-        console.error(`[App] Refresh ${name} failed:`, e);
-      } finally {
-        this.inFlight.delete(name);
-        scheduleNext(computeDelay(intervalMs, false));
-      }
-    };
-    this.refreshRunners.set(name, { run, intervalMs });
-    scheduleNext(computeDelay(intervalMs, document.visibilityState === 'hidden'));
-  }
-
-  /** Cancel pending timeouts for stale services and re-trigger them immediately. */
-  private flushStaleRefreshes(): void {
-    if (!this.hiddenSince) return;
-    const hiddenMs = Date.now() - this.hiddenSince;
-    this.hiddenSince = 0;
-
-    let stagger = 0;
-    for (const [name, { run, intervalMs }] of this.refreshRunners) {
-      if (hiddenMs < intervalMs) continue;
-      const pending = this.refreshTimeoutIds.get(name);
-      if (pending) clearTimeout(pending);
-      const delay = stagger;
-      stagger += 150;
-      this.refreshTimeoutIds.set(name, setTimeout(() => void run(), delay));
-    }
-  }
-
-  private setupRefreshIntervals(): void {
-    // Always refresh news, markets, predictions, pizzint
-    this.scheduleRefresh('news', () => this.loadNews(), REFRESH_INTERVALS.feeds);
-    this.scheduleRefresh('markets', () => this.loadMarkets(), REFRESH_INTERVALS.markets);
-    this.scheduleRefresh('predictions', () => this.loadPredictions(), REFRESH_INTERVALS.predictions);
-    this.scheduleRefresh('pizzint', () => this.loadPizzInt(), 10 * 60 * 1000);
-
-    // Only refresh layer data if layer is enabled
-    this.scheduleRefresh('natural', () => this.loadNatural(), 5 * 60 * 1000, () => this.mapLayers.natural);
-    this.scheduleRefresh('weather', () => this.loadWeatherAlerts(), 10 * 60 * 1000, () => this.mapLayers.weather);
-    this.scheduleRefresh('fred', () => this.loadFredData(), 30 * 60 * 1000);
-    this.scheduleRefresh('oil', () => this.loadOilAnalytics(), 30 * 60 * 1000);
-    this.scheduleRefresh('spending', () => this.loadGovernmentSpending(), 60 * 60 * 1000);
-
-    // Refresh intelligence signals for CII (geopolitical variant only)
-    // This handles outages, protests, military - updates map when layers enabled
-    if (SITE_VARIANT === 'full') {
-      this.scheduleRefresh('intelligence', () => {
-        this.intelligenceCache = {}; // Clear cache to force fresh fetch
-        return this.loadIntelligenceSignals();
-      }, 5 * 60 * 1000);
-    }
-
-    // Non-intelligence layer refreshes only
-    // NOTE: outages, protests, military are refreshed by intelligence schedule above
-    this.scheduleRefresh('firms', () => this.loadFirmsData(), 30 * 60 * 1000);
-    this.scheduleRefresh('ais', () => this.loadAisSignals(), REFRESH_INTERVALS.ais, () => this.mapLayers.ais);
-    this.scheduleRefresh('cables', () => this.loadCableActivity(), 30 * 60 * 1000, () => this.mapLayers.cables);
-    this.scheduleRefresh('cableHealth', () => this.loadCableHealth(), 5 * 60 * 1000, () => this.mapLayers.cables);
-    this.scheduleRefresh('flights', () => this.loadFlightDelays(), 10 * 60 * 1000, () => this.mapLayers.flights);
-    this.scheduleRefresh('cyberThreats', () => {
-      this.cyberThreatsCache = null;
-      return this.loadCyberThreats();
-    }, 10 * 60 * 1000, () => CYBER_LAYER_ENABLED && this.mapLayers.cyberThreats);
-  }
 }

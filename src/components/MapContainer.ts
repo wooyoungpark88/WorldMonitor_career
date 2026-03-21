@@ -4,7 +4,10 @@
  */
 import { isMobileDevice } from '@/utils';
 import { MapComponent } from './Map';
-import { DeckGLMap, type DeckMapView, type CountryClickPayload } from './DeckGLMap';
+import { DeckGLMap } from './DeckGLMap';
+import type { DeckMapView, CountryClickPayload } from './map/types';
+export { type TimeRange, type MapView, type MapContainerState, type TechEventMarker } from './map/types';
+import type { TimeRange, MapView, MapState as MapContainerState, TechEventMarker } from './map/types';
 import type {
   MapLayers,
   Hotspot,
@@ -31,30 +34,6 @@ import type { DisplacementFlow } from '@/services/displacement';
 import type { Earthquake } from '@/services/earthquakes';
 import type { ClimateAnomaly } from '@/services/climate';
 import type { WeatherAlert } from '@/services/weather';
-
-export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
-export type MapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
-
-export interface MapContainerState {
-  zoom: number;
-  pan: { x: number; y: number };
-  view: MapView;
-  layers: MapLayers;
-  timeRange: TimeRange;
-}
-
-interface TechEventMarker {
-  id: string;
-  title: string;
-  location: string;
-  lat: number;
-  lng: number;
-  country: string;
-  startDate: string;
-  endDate: string;
-  url: string | null;
-  daysUntil: number;
-}
 
 /**
  * Unified map interface that delegates to either DeckGLMap or MapComponent

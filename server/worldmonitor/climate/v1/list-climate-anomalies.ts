@@ -21,7 +21,7 @@ import { CHROME_UA } from '../../../_shared/constants';
 import { getCachedJson, setCachedJson } from '../../../_shared/redis';
 
 const REDIS_CACHE_KEY = 'climate:anomalies:v1';
-const REDIS_CACHE_TTL = 10800; // 3h — Open-Meteo Archive uses ERA5 reanalysis with 2-7 day lag
+const REDIS_CACHE_TTL = 3600; // 1h — data changes slowly but keep reasonably fresh
 
 /** The 15 monitored zones matching the legacy api/climate-anomalies.js list. */
 const ZONES: { name: string; lat: number; lon: number }[] = [
@@ -96,7 +96,14 @@ async function fetchZone(
     throw new Error(`Open-Meteo ${response.status} for ${zone.name}`);
   }
 
-  const data: any = await response.json();
+  interface OpenMeteoArchiveResponse {
+    daily?: {
+      temperature_2m_mean?: (number | null)[];
+      precipitation_sum?: (number | null)[];
+    };
+  }
+
+  const data: OpenMeteoArchiveResponse = await response.json();
 
   // Filter nulls: only keep indices where both temp and precip are non-null
   const rawTemps: (number | null)[] = data.daily?.temperature_2m_mean ?? [];

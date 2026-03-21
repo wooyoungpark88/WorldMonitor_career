@@ -22,6 +22,7 @@ const AI_CLASSIFY_MAX_PER_WINDOW =
   SITE_VARIANT === 'finance' ? 40 : SITE_VARIANT === 'tech' ? 60 : SITE_VARIANT === 'care' ? 50 : 80;
 const AI_CLASSIFY_MAX_PER_FEED =
   SITE_VARIANT === 'finance' ? 2 : SITE_VARIANT === 'tech' ? 2 : SITE_VARIANT === 'care' ? 2 : 3;
+const MAX_AI_RECENTLY_QUEUED = 500;
 const aiRecentlyQueued = new Map<string, number>();
 const aiDispatches: number[] = [];
 
@@ -142,6 +143,15 @@ function canQueueAiClassification(title: string): boolean {
   }
   for (const [key, queuedAt] of aiRecentlyQueued) {
     if (now - queuedAt > AI_CLASSIFY_DEDUP_MS) {
+      aiRecentlyQueued.delete(key);
+    }
+  }
+  // Enforce hard size limit to prevent unbounded growth
+  if (aiRecentlyQueued.size > MAX_AI_RECENTLY_QUEUED) {
+    const entries = Array.from(aiRecentlyQueued.entries())
+      .sort((a, b) => a[1] - b[1]);
+    const toRemove = entries.slice(0, entries.length - MAX_AI_RECENTLY_QUEUED);
+    for (const [key] of toRemove) {
       aiRecentlyQueued.delete(key);
     }
   }
@@ -311,7 +321,14 @@ export async function fetchCategoryFeeds(
   };
 
   for (const batch of batches) {
-    const results = await Promise.all(batch.map(fetchFeed));
+    const settled = await Promise.allSettled(batch.map(fetchFeed));
+    const results = settled
+      .filter((r): r is PromiseFulfilledResult<NewsItem[]> => r.status === 'fulfilled')
+      .map(r => r.value);
+    const batchFailures = settled.filter(r => r.status === 'rejected');
+    if (batchFailures.length > 0) {
+      console.warn(`[RSS] ${batchFailures.length} feed fetches failed`);
+    }
     results.flat().forEach(insertTopItem);
     options.onBatch?.(ensureSortedDescending());
   }

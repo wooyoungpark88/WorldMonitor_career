@@ -266,7 +266,7 @@ export function ingestDisplacementForCII(countries: CountryDisplacement[]): void
 
   for (const c of countries) {
     const code = c.code?.length === 3
-      ? ISO3_TO_ISO2[c.code] || c.code.substring(0, 2)
+      ? ISO3_TO_ISO2[c.code] || c.code.slice(0, 2)
       : COUNTRY_NAME_TO_ISO[c.name] || c.code;
     if (!code || !TIER1_COUNTRIES[code]) continue;
     if (!countryDataMap.has(code)) countryDataMap.set(code, initCountryData());

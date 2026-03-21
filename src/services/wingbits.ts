@@ -282,7 +282,7 @@ export function analyzeAircraftDetails(details: WingbitsAircraftDetails): Enrich
     owner: details.owner,
     operator: details.operator,
     operatorIcao: details.operatorIcao,
-    builtYear: details.built?.substring(0, 4) || null,
+    builtYear: details.built?.slice(0, 4) || null,
     isMilitary: false,
     militaryBranch: null,
     confidence: 'civilian',

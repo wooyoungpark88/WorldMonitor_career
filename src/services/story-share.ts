@@ -43,7 +43,7 @@ export function generateQRCode(data: string, size: number = 200): string {
   ctx.font = '14px monospace';
   ctx.textAlign = 'center';
   ctx.fillText('Scan to view', size/2, size/2 - 10);
-  ctx.fillText(data.substring(0, 20) + '...', size/2, size/2 + 10);
+  ctx.fillText(data.slice(0, 20) + '...', size/2, size/2 + 10);
   
   return canvas.toDataURL('image/png');
 }

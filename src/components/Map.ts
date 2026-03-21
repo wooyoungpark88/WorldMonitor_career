@@ -54,33 +54,8 @@ import { getCountryScore } from '@/services/country-instability';
 import { getAlertsNearLocation } from '@/services/geo-convergence';
 import { t } from '@/services/i18n';
 
-export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
-export type MapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
-
-interface MapState {
-  zoom: number;
-  pan: { x: number; y: number };
-  view: MapView;
-  layers: MapLayers;
-  timeRange: TimeRange;
-}
-
-interface HotspotWithBreaking extends Hotspot {
-  hasBreaking?: boolean;
-}
-
-interface TechEventMarker {
-  id: string;
-  title: string;
-  location: string;
-  lat: number;
-  lng: number;
-  country: string;
-  startDate: string;
-  endDate: string;
-  url: string | null;
-  daysUntil: number;
-}
+export { type TimeRange, isValidTimeRange, type MapView, type MapState, type HotspotWithBreaking, type TechEventMarker } from './map/types';
+import type { TimeRange, MapView, MapState, HotspotWithBreaking, TechEventMarker } from './map/types';
 
 interface WorldTopology extends Topology {
   objects: {

@@ -84,53 +84,20 @@ import { getCountryScore } from '@/services/country-instability';
 import { getAlertsNearLocation } from '@/services/geo-convergence';
 import { getCountriesGeoJson, getCountryAtCoordinates } from '@/services/country-geometry';
 
-export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
-export type DeckMapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
+export {
+  type TimeRange,
+  type DeckMapView,
+  type MapView,
+  type CountryClickPayload,
+  type HotspotWithBreaking,
+  type TechEventMarker,
+  VIEW_PRESETS,
+  LAYER_ZOOM_THRESHOLDS,
+} from './map/types';
+import type { TimeRange, DeckMapView, CountryClickPayload, HotspotWithBreaking, TechEventMarker } from './map/types';
+import { VIEW_PRESETS, LAYER_ZOOM_THRESHOLDS } from './map/types';
+type DeckMapState = import('./map/types').MapState;
 type MapInteractionMode = 'flat' | '3d';
-
-export interface CountryClickPayload {
-  lat: number;
-  lon: number;
-  code?: string;
-  name?: string;
-}
-
-interface DeckMapState {
-  zoom: number;
-  pan: { x: number; y: number };
-  view: DeckMapView;
-  layers: MapLayers;
-  timeRange: TimeRange;
-}
-
-interface HotspotWithBreaking extends Hotspot {
-  hasBreaking?: boolean;
-}
-
-interface TechEventMarker {
-  id: string;
-  title: string;
-  location: string;
-  lat: number;
-  lng: number;
-  country: string;
-  startDate: string;
-  endDate: string;
-  url: string | null;
-  daysUntil: number;
-}
-
-// View presets with longitude, latitude, zoom
-const VIEW_PRESETS: Record<DeckMapView, { longitude: number; latitude: number; zoom: number }> = {
-  global: { longitude: 0, latitude: 20, zoom: 1.5 },
-  america: { longitude: -95, latitude: 38, zoom: 3 },
-  mena: { longitude: 45, latitude: 28, zoom: 3.5 },
-  eu: { longitude: 15, latitude: 50, zoom: 3.5 },
-  asia: { longitude: 105, latitude: 35, zoom: 3 },
-  latam: { longitude: -60, latitude: -15, zoom: 3 },
-  africa: { longitude: 20, latitude: 5, zoom: 3 },
-  oceania: { longitude: 135, latitude: -25, zoom: 3.5 },
-};
 
 const MAP_INTERACTION_MODE: MapInteractionMode =
   import.meta.env.VITE_MAP_INTERACTION_MODE === 'flat' ? 'flat' : '3d';
@@ -138,22 +105,6 @@ const MAP_INTERACTION_MODE: MapInteractionMode =
 // Theme-aware basemap vector style URLs (English labels, no local scripts)
 const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 const LIGHT_STYLE = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
-
-// Zoom thresholds for layer visibility and labels (matches old Map.ts)
-// Zoom-dependent layer visibility and labels
-const LAYER_ZOOM_THRESHOLDS: Partial<Record<keyof MapLayers, { minZoom: number; showLabels?: number }>> = {
-  bases: { minZoom: 3, showLabels: 5 },
-  nuclear: { minZoom: 3 },
-  conflicts: { minZoom: 1, showLabels: 3 },
-  economic: { minZoom: 3 },
-  natural: { minZoom: 1, showLabels: 2 },
-  datacenters: { minZoom: 5 },
-  irradiators: { minZoom: 4 },
-  spaceports: { minZoom: 3 },
-  gulfInvestments: { minZoom: 2, showLabels: 5 },
-};
-// Export for external use
-export { LAYER_ZOOM_THRESHOLDS };
 
 // Theme-aware overlay color function — refreshed each buildLayers() call
 function getOverlayColors() {
@@ -2326,15 +2277,14 @@ export class DeckGLMap {
 
     const rawLayerId = info.layer?.id || '';
     const layerId = rawLayerId.endsWith('-ghost') ? rawLayerId.slice(0, -6) : rawLayerId;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const obj = info.object as any;
+    const obj = info.object as Record<string, any>;
     const text = (value: unknown): string => escapeHtml(String(value ?? ''));
 
     switch (layerId) {
       case 'hotspots-layer':
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.name)}</strong><br/>${text(obj.subtext)}</div>` };
       case 'earthquakes-layer':
-        return { html: `<div class="deckgl-tooltip"><strong>M${(obj.magnitude || 0).toFixed(1)} ${t('components.deckgl.tooltip.earthquake')}</strong><br/>${text(obj.place)}</div>` };
+        return { html: `<div class="deckgl-tooltip"><strong>M${Number(obj.magnitude || 0).toFixed(1)} ${t('components.deckgl.tooltip.earthquake')}</strong><br/>${text(obj.place)}</div>` };
       case 'military-vessels-layer':
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.name)}</strong><br/>${text(obj.operatorCountry)}</div>` };
       case 'military-flights-layer':
@@ -3886,6 +3836,7 @@ export class DeckGLMap {
       this.moveTimeoutId = null;
     }
 
+    // Clear pulse animation interval
     this.stopPulseAnimation();
 
     if (this.resizeObserver) {

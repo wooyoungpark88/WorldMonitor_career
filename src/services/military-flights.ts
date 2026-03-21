@@ -228,7 +228,7 @@ function parseOpenSkyResponse(data: OpenSkyResponse): MilitaryFlight[] {
 
     const flight: MilitaryFlight = {
       id: `opensky-${icao24}`,
-      callsign: callsign || `UNKN-${icao24.substring(0, 4).toUpperCase()}`,
+      callsign: callsign || `UNKN-${icao24.slice(0, 4).toUpperCase()}`,
       hexCode: icao24.toUpperCase(),
       aircraftType: info.type,
       operator: info.operator,
@@ -300,7 +300,14 @@ async function fetchFromOpenSky(): Promise<MilitaryFlight[]> {
     const batch = MILITARY_HOTSPOTS.slice(i, i + batchSize);
 
     // Start requests for this batch only
-    const results = await Promise.all(batch.map(hotspot => fetchHotspotRegion(hotspot)));
+    const settled = await Promise.allSettled(batch.map(hotspot => fetchHotspotRegion(hotspot)));
+    const results = settled
+      .filter((r): r is PromiseFulfilledResult<MilitaryFlight[]> => r.status === 'fulfilled')
+      .map(r => r.value);
+    const batchFailures = settled.filter(r => r.status === 'rejected');
+    if (batchFailures.length > 0) {
+      console.warn(`[Military Flights] ${batchFailures.length} hotspot requests failed`);
+    }
 
     for (const flights of results) {
       for (const flight of flights) {

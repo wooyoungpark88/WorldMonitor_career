@@ -195,11 +195,15 @@ export async function getTheaterPosture(
     const theaters = calculatePostures(flights);
     const result: GetTheaterPostureResponse = { theaters };
 
-    await Promise.all([
+    const cacheSettled = await Promise.allSettled([
       setCachedJson(CACHE_KEY, result, CACHE_TTL),
       setCachedJson(STALE_CACHE_KEY, result, STALE_TTL),
       setCachedJson(BACKUP_CACHE_KEY, result, BACKUP_TTL),
     ]);
+    const cacheFailures = cacheSettled.filter(r => r.status === 'rejected');
+    if (cacheFailures.length > 0) {
+      console.warn(`[TheaterPosture] ${cacheFailures.length} cache writes failed`);
+    }
     return result;
   } catch {
     const stale = (await getCachedJson(STALE_CACHE_KEY)) as GetTheaterPostureResponse | null;

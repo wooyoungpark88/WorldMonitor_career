@@ -21,7 +21,7 @@ const MAX_PAGES = 12;
 const TRAILING_WINDOW_MS = 365 * 24 * 60 * 60 * 1000;
 
 const CACHE_KEY = 'ucdp:gedevents:sebuf:v1';
-const CACHE_TTL_FULL = 6 * 60 * 60;        // 6 hours for complete results
+const CACHE_TTL_FULL = 30 * 60;             // 30 min for complete results
 const CACHE_TTL_PARTIAL = 10 * 60;          // 10 minutes for partial results (M-16 port)
 
 // In-memory fallback cache with per-entry TTL
@@ -174,13 +174,13 @@ async function fetchUcdpGedEvents(req: ListUcdpEventsRequest): Promise<UcdpViole
         longitude: Number(e.longitude) || 0,
       },
       country: e.country || '',
-      sideA: (e.side_a || '').substring(0, 200),
-      sideB: (e.side_b || '').substring(0, 200),
+      sideA: (e.side_a || '').slice(0, 200),
+      sideB: (e.side_b || '').slice(0, 200),
       deathsBest: Number(e.best) || 0,
       deathsLow: Number(e.low) || 0,
       deathsHigh: Number(e.high) || 0,
       violenceType: VIOLENCE_TYPE_MAP[e.type_of_violence] || 'UCDP_VIOLENCE_TYPE_UNSPECIFIED',
-      sourceOriginal: (e.source_original || '').substring(0, 300),
+      sourceOriginal: (e.source_original || '').slice(0, 300),
     }));
 
     // Filter by country if requested

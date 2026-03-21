@@ -86,10 +86,16 @@ function convertGDACSToNaturalEvent(gdacs: GDACSEvent): NaturalEvent {
 }
 
 export async function fetchNaturalEvents(days = 30): Promise<NaturalEvent[]> {
-  const [eonetEvents, gdacsEvents] = await Promise.all([
+  const settled = await Promise.allSettled([
     fetchEonetEvents(days),
     fetchGDACSEvents(),
   ]);
+  const eonetEvents = settled[0].status === 'fulfilled' ? settled[0].value : [];
+  const gdacsEvents = settled[1].status === 'fulfilled' ? settled[1].value : [];
+  const eonetFailures = settled.filter(r => r.status === 'rejected');
+  if (eonetFailures.length > 0) {
+    console.warn(`[NaturalEvents] ${eonetFailures.length} event sources failed`);
+  }
 
   console.log(`[NaturalEvents] EONET: ${eonetEvents.length}, GDACS: ${gdacsEvents.length}`);
   const gdacsConverted = gdacsEvents.map(convertGDACSToNaturalEvent);

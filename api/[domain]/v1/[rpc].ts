@@ -10,6 +10,8 @@ import { getCorsHeaders, isDisallowedOrigin } from '../../../server/cors';
 // @ts-expect-error — JS module, no declaration file
 import { validateApiKey } from '../../_api-key.js';
 import { mapErrorToResponse } from '../../../server/error-mapper';
+import { checkRateLimit, getRateLimitHeaders } from '../../../server/rate-limiter';
+import { deduplicateRequest } from '../../../server/request-dedup';
 import { createSeismologyServiceRoutes } from '../../../src/generated/server/worldmonitor/seismology/v1/service_server';
 import { seismologyHandler } from '../../../server/worldmonitor/seismology/v1/handler';
 import { createWildfireServiceRoutes } from '../../../src/generated/server/worldmonitor/wildfire/v1/service_server';
@@ -101,6 +103,26 @@ export default async function handler(request: Request): Promise<Response> {
     });
   }
 
+  // Rate limiting (keyed by client IP or fallback)
+  const clientIp =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
+  const rateLimitResult = checkRateLimit(clientIp);
+  const rateLimitHeaders = getRateLimitHeaders(rateLimitResult);
+
+  if (!rateLimitResult.allowed) {
+    return new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(Math.ceil(rateLimitResult.resetIn / 1000)),
+        ...rateLimitHeaders,
+        ...corsHeaders,
+      },
+    });
+  }
+
   // Route matching
   const matchedHandler = router.match(request);
   if (!matchedHandler) {
@@ -110,21 +132,36 @@ export default async function handler(request: Request): Promise<Response> {
     });
   }
 
-  // Execute handler with top-level error boundary (H-1 fix)
-  let response: Response;
-  try {
-    response = await matchedHandler(request);
-  } catch (err) {
-    console.error('[gateway] Unhandled handler error:', err);
-    response = new Response(JSON.stringify({ message: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  // Build dedup key from method + pathname (GET requests only)
+  const url = new URL(request.url);
+  const dedupKey = request.method === 'GET'
+    ? `${request.method}:${url.pathname}${url.search}:${clientIp}`
+    : '';
 
-  // Merge CORS headers into response
+  // Execute handler with deduplication and top-level error boundary (H-1 fix)
+  let response: Response;
+  const executeHandler = async () => {
+    try {
+      return await matchedHandler(request);
+    } catch (err) {
+      console.error('[gateway] Unhandled handler error:', err);
+      return new Response(JSON.stringify({ message: 'Internal server error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  };
+
+  response = dedupKey
+    ? await deduplicateRequest(dedupKey, executeHandler)
+    : await executeHandler();
+
+  // Merge CORS + rate-limit headers into response
   const mergedHeaders = new Headers(response.headers);
   for (const [key, value] of Object.entries(corsHeaders)) {
+    mergedHeaders.set(key, value);
+  }
+  for (const [key, value] of Object.entries(rateLimitHeaders)) {
     mergedHeaders.set(key, value);
   }
 

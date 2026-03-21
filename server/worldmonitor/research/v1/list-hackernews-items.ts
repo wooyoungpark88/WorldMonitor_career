@@ -47,7 +47,7 @@ async function fetchHackernewsItems(req: ListHackernewsItemsRequest): Promise<Ha
 
   for (let i = 0; i < ids.length; i += HN_MAX_CONCURRENCY) {
     const batch = ids.slice(i, i + HN_MAX_CONCURRENCY);
-    const results = await Promise.all(
+    const settled = await Promise.allSettled(
       batch.map(async (id): Promise<HackernewsItem | null> => {
         try {
           const res = await fetch(
@@ -71,6 +71,13 @@ async function fetchHackernewsItems(req: ListHackernewsItemsRequest): Promise<Ha
         }
       }),
     );
+    const results = settled
+      .filter((r): r is PromiseFulfilledResult<HackernewsItem | null> => r.status === 'fulfilled')
+      .map(r => r.value);
+    const batchFailures = settled.filter(r => r.status === 'rejected');
+    if (batchFailures.length > 0) {
+      console.warn(`[HackerNews] ${batchFailures.length} item fetches failed`);
+    }
     for (const item of results) {
       if (item) items.push(item);
     }

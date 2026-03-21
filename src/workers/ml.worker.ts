@@ -105,8 +105,7 @@ async function loadModel(modelId: string): Promise<void> {
 
   const loadPromise = (async () => {
     // Suppress verbose ONNX Runtime warnings (CleanUnusedInitializersAndNodeArgs)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ort = (globalThis as any).ort;
+    const ort = (globalThis as unknown as { ort?: { env?: { logLevel: string } } }).ort;
     if (ort?.env) { try { ort.env.logLevel = 'error'; } catch { /* ignore */ } }
 
     const pipe = await pipeline(config.task, config.hfModel, {

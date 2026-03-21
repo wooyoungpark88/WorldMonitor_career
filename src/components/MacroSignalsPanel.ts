@@ -136,6 +136,7 @@ export class MacroSignalsPanel extends Panel {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
     }
+    super.destroy();
   }
 
   private async fetchData(): Promise<void> {

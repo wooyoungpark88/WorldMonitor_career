@@ -61,9 +61,16 @@ export async function listMarketQuotes(
 
     // Fetch Finnhub quotes (only if API key is set)
     if (finnhubSymbols.length > 0 && apiKey) {
-      const results = await Promise.all(
+      const settled = await Promise.allSettled(
         finnhubSymbols.map((s) => fetchFinnhubQuote(s, apiKey)),
       );
+      const results = settled
+        .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof fetchFinnhubQuote>>> => r.status === 'fulfilled')
+        .map(r => r.value);
+      const failures = settled.filter(r => r.status === 'rejected');
+      if (failures.length > 0) {
+        console.warn(`[MarketQuotes] ${failures.length} Finnhub requests failed`);
+      }
       for (const r of results) {
         if (r) {
           quotes.push({

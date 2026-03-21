@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { storage } from '../utils/storage';
 
 export type ExportDocumentType = 'IR' | 'proposal' | 'paper' | 'pitch' | 'report';
 
@@ -82,7 +83,7 @@ export async function exportSROIToCSV(filename = 'care radar-sroi-export'): Prom
   }
 
   if (records.length === 0) {
-    const stored = JSON.parse(localStorage.getItem('careradar_sessions') || '[]');
+    const stored = JSON.parse(storage.getRaw('careradar_sessions') || '[]');
     records = stored
       .filter((s: { type: string }) => s.type === 'sroi')
       .map((s: { id: string; data: { myAnswer: string; insight: string }; completedAt: string }) => ({
@@ -128,7 +129,7 @@ export async function exportAllInsightsToCSV(filename = 'care radar-insights-exp
   }
 
   if (records.length === 0) {
-    const stored = JSON.parse(localStorage.getItem('careradar_sessions') || '[]');
+    const stored = JSON.parse(storage.getRaw('careradar_sessions') || '[]');
     records = stored.map(
       (s: { id: string; type: string; data: { myAnswer: string; insight: string }; completedAt: string }) => ({
         id: s.id,

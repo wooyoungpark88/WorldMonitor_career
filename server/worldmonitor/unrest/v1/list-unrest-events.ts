@@ -56,7 +56,7 @@ async function fetchAcledProtests(req: ListUnrestEventsRequest): Promise<UnrestE
         return {
           id: `acled-${e.event_id_cnty}`,
           title: e.notes?.slice(0, 200) || `${e.sub_event_type} in ${e.location}`,
-          summary: typeof e.notes === 'string' ? e.notes.substring(0, 500) : '',
+          summary: typeof e.notes === 'string' ? e.notes.slice(0, 500) : '',
           eventType: mapAcledEventType(e.event_type || '', e.sub_event_type || ''),
           city: e.location || '',
           country: e.country || '',

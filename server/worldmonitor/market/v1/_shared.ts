@@ -18,9 +18,22 @@ export async function fetchYahooQuotesBatch(
   symbols: string[],
 ): Promise<Map<string, { price: number; change: number; sparkline: number[] }>> {
   const results = new Map<string, { price: number; change: number; sparkline: number[] }>();
-  for (let i = 0; i < symbols.length; i++) {
-    const q = await fetchYahooQuote(symbols[i]!);
-    if (q) results.set(symbols[i]!, q);
+  if (symbols.length === 0) return results;
+
+  // Launch all fetches concurrently — they serialize through yahooGate() anyway,
+  // but this pipelines requests so the next fetch starts its gate wait while the
+  // previous response is still being parsed, eliminating idle gaps.
+  const settled = await Promise.allSettled(
+    symbols.map(async (symbol) => {
+      const q = await fetchYahooQuote(symbol);
+      return { symbol, q };
+    }),
+  );
+
+  for (const r of settled) {
+    if (r.status === 'fulfilled' && r.value.q) {
+      results.set(r.value.symbol, r.value.q);
+    }
   }
   return results;
 }

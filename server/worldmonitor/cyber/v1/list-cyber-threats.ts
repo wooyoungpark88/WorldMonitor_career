@@ -55,13 +55,23 @@ export async function listCyberThreats(
     const cutoffMs = now - days * 24 * 60 * 60 * 1000;
 
     // Fetch all sources in parallel
-    const [feodo, urlhaus, c2intel, otx, abuseipdb] = await Promise.all([
+    const settled = await Promise.allSettled([
       fetchFeodoSource(pageSize, cutoffMs),
       fetchUrlhausSource(pageSize, cutoffMs),
       fetchC2IntelSource(pageSize),
       fetchOtxSource(pageSize, days),
       fetchAbuseIpDbSource(pageSize),
     ]);
+    const cyberFailures = settled.filter(r => r.status === 'rejected');
+    if (cyberFailures.length > 0) {
+      console.warn(`[CyberThreats] ${cyberFailures.length} source fetches failed`);
+    }
+    const emptySource = { ok: false, threats: [] as any[] };
+    const feodo = settled[0].status === 'fulfilled' ? settled[0].value : emptySource;
+    const urlhaus = settled[1].status === 'fulfilled' ? settled[1].value : emptySource;
+    const c2intel = settled[2].status === 'fulfilled' ? settled[2].value : emptySource;
+    const otx = settled[3].status === 'fulfilled' ? settled[3].value : emptySource;
+    const abuseipdb = settled[4].status === 'fulfilled' ? settled[4].value : emptySource;
 
     const anySucceeded = feodo.ok || urlhaus.ok || c2intel.ok || otx.ok || abuseipdb.ok;
     if (!anySucceeded) {

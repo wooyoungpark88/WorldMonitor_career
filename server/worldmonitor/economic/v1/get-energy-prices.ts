@@ -101,7 +101,14 @@ async function fetchEnergyPrices(commodities: string[]): Promise<EnergyPrice[]> 
     ? EIA_SERIES.filter((s) => commodities.includes(s.commodity))
     : EIA_SERIES;
 
-  const results = await Promise.all(series.map((s) => fetchEiaSeries(s, apiKey)));
+  const settled = await Promise.allSettled(series.map((s) => fetchEiaSeries(s, apiKey)));
+  const results = settled
+    .filter((r): r is PromiseFulfilledResult<EnergyPrice | null> => r.status === 'fulfilled')
+    .map(r => r.value);
+  const failures = settled.filter(r => r.status === 'rejected');
+  if (failures.length > 0) {
+    console.warn(`[EnergyPrices] ${failures.length} EIA requests failed`);
+  }
   return results.filter((p): p is EnergyPrice => p !== null);
 }
 

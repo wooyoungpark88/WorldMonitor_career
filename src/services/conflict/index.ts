@@ -107,8 +107,8 @@ const VIOLENCE_TYPE_REVERSE: Record<string, UcdpEventType> = {
 function toUcdpGeoEvent(proto: ProtoUcdpEvent): UcdpGeoEvent {
   return {
     id: proto.id,
-    date_start: proto.dateStart ? new Date(proto.dateStart).toISOString().substring(0, 10) : '',
-    date_end: proto.dateEnd ? new Date(proto.dateEnd).toISOString().substring(0, 10) : '',
+    date_start: proto.dateStart ? new Date(proto.dateStart).toISOString().slice(0, 10) : '',
+    date_end: proto.dateEnd ? new Date(proto.dateEnd).toISOString().slice(0, 10) : '',
     latitude: proto.location?.latitude ?? 0,
     longitude: proto.location?.longitude ?? 0,
     country: proto.country,

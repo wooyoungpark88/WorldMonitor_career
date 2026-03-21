@@ -77,7 +77,7 @@ const NAVAL_BASES = [
 function analyzeMmsi(mmsi: string): { isPotentialMilitary: boolean; country?: string } {
   if (!mmsi || mmsi.length < 9) return { isPotentialMilitary: false };
 
-  const mid = mmsi.substring(0, 3);
+  const mid = mmsi.slice(0, 3);
 
   // MIDs for countries with significant navies
   const militaryMids: Record<string, string> = {
@@ -163,7 +163,7 @@ function analyzeMmsi(mmsi: string): { isPotentialMilitary: boolean; country?: st
 
   // Check last digits - some patterns indicate warships
   // Government vessels often have specific MMSI patterns
-  const suffix = mmsi.substring(3);
+  const suffix = mmsi.slice(3);
   if (suffix.startsWith('00') || suffix.startsWith('99')) {
     return { isPotentialMilitary: true, country };
   }

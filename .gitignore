@@ -27,5 +27,11 @@ src-tauri/sidecar/node/*
 # AI planning session state (not source code)
 .planning/
 
+# Build artifacts / debug logs
+build_error.log
+build_error.txt
+vite_debug.txt
+npm_error.log
+
 # Compiled sebuf gateway bundle (built by scripts/build-sidecar-sebuf.mjs)
 api/[[][[].*.js

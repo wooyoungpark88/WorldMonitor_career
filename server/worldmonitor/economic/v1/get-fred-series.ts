@@ -41,7 +41,7 @@ async function fetchFredSeries(req: GetFredSeriesRequest): Promise<FredSeries | 
       file_type: 'json',
     });
 
-    const [obsResponse, metaResponse] = await Promise.all([
+    const settled = await Promise.allSettled([
       fetch(`${FRED_API_BASE}/series/observations?${obsParams}`, {
         headers: { Accept: 'application/json' },
         signal: AbortSignal.timeout(10000),
@@ -51,8 +51,14 @@ async function fetchFredSeries(req: GetFredSeriesRequest): Promise<FredSeries | 
         signal: AbortSignal.timeout(10000),
       }),
     ]);
+    const failures = settled.filter(r => r.status === 'rejected');
+    if (failures.length > 0) {
+      console.warn(`[FredSeries] ${failures.length} FRED requests failed`);
+    }
+    const obsResponse = settled[0].status === 'fulfilled' ? settled[0].value : null;
+    const metaResponse = settled[1].status === 'fulfilled' ? settled[1].value : null;
 
-    if (!obsResponse.ok) return undefined;
+    if (!obsResponse || !obsResponse.ok) return undefined;
 
     const obsData = await obsResponse.json() as { observations?: Array<{ date: string; value: string }> };
 
@@ -69,7 +75,7 @@ async function fetchFredSeries(req: GetFredSeriesRequest): Promise<FredSeries | 
     let units = '';
     let frequency = '';
 
-    if (metaResponse.ok) {
+    if (metaResponse?.ok) {
       const metaData = await metaResponse.json() as { seriess?: Array<{ title?: string; units?: string; frequency?: string }> };
       const meta = metaData.seriess?.[0];
       if (meta) {

@@ -212,8 +212,8 @@ function parseUSNIArticle(
     const part = h2Parts[i]!;
     const h2EndIdx = part.indexOf('</h2>');
     if (h2EndIdx === -1) continue;
-    const regionRaw = stripHtml(part.substring(0, h2EndIdx));
-    const regionContent = part.substring(h2EndIdx + 5);
+    const regionRaw = stripHtml(part.slice(0, h2EndIdx));
+    const regionContent = part.slice(h2EndIdx + 5);
 
     const regionName = regionRaw
       .replace(/^(In the|In|The)\s+/i, '')
@@ -240,7 +240,7 @@ function parseUSNIArticle(
       if (j > 0) {
         const h3EndIdx = section.indexOf('</h3>');
         if (h3EndIdx !== -1) {
-          const sgName = stripHtml(section.substring(0, h3EndIdx));
+          const sgName = stripHtml(section.slice(0, h3EndIdx));
           if (sgName) {
             currentStrikeGroup = {
               name: sgName,
@@ -259,7 +259,7 @@ function parseUSNIArticle(
       const sectionText = stripHtml(section);
       const deploymentStatus = detectDeploymentStatus(sectionText);
       const homePort = extractHomePort(sectionText);
-      const activityDesc = sectionText.length > 10 ? sectionText.substring(0, 200).trim() : '';
+      const activityDesc = sectionText.length > 10 ? sectionText.slice(0, 200).trim() : '';
 
       const upsertVessel = (entry: USNIVessel) => {
         const key = `${entry.region}|${entry.hullNumber.toUpperCase()}`;

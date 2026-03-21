@@ -1,25 +1,14 @@
 /**
  * CORS header generation -- TypeScript port of api/_cors.js.
  *
- * Identical ALLOWED_ORIGIN_PATTERNS and logic, with methods hardcoded
- * to 'POST, OPTIONS' (all sebuf routes are POST).
+ * Origin patterns are imported from the shared _cors-patterns module so
+ * that server/cors.ts and api/_cors.js stay in sync.  Methods are
+ * hardcoded to 'POST, OPTIONS' (all sebuf routes are POST).
  */
 
 declare const process: { env: Record<string, string | undefined> };
 
-const PRODUCTION_PATTERNS: RegExp[] = [
-  /^https:\/\/(.*\.)?worldmonitor\.app$/,
-  /^https:\/\/.*\.up\.railway\.app$/,
-  /^https?:\/\/tauri\.localhost(:\d+)?$/,
-  /^https?:\/\/[a-z0-9-]+\.tauri\.localhost(:\d+)?$/i,
-  /^tauri:\/\/localhost$/,
-  /^asset:\/\/localhost$/,
-];
-
-const DEV_PATTERNS: RegExp[] = [
-  /^https?:\/\/localhost(:\d+)?$/,
-  /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
-];
+import { PRODUCTION_PATTERNS, DEV_PATTERNS } from './_cors-patterns';
 
 const ALLOWED_ORIGIN_PATTERNS: RegExp[] =
   process.env.NODE_ENV === 'production'

@@ -4,8 +4,7 @@ import type { Earthquake } from '@/services/earthquakes';
 import type { WeatherAlert } from '@/services/weather';
 import { UNDERSEA_CABLES } from '@/config';
 import type { StartupHub, Accelerator, TechHQ, CloudRegion } from '@/config/tech-geo';
-import type { TechHubActivity } from '@/services/tech-activity';
-import type { GeoHubActivity } from '@/services/geo-activity';
+// TechHubActivity and GeoHubActivity are used via PopupData (imported from ./map/popup-types)
 import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
 import { isMobileDevice, getCSSColor } from '@/utils';
 import { t } from '@/services/i18n';
@@ -14,117 +13,19 @@ import { getNaturalEventIcon } from '@/services/eonet';
 import { getHotspotEscalation, getEscalationChange24h } from '@/services/hotspot-escalation';
 import { getCableHealthRecord } from '@/services/cable-health';
 
-export type PopupType = 'conflict' | 'hotspot' | 'earthquake' | 'weather' | 'base' | 'waterway' | 'apt' | 'cyberThreat' | 'nuclear' | 'economic' | 'irradiator' | 'pipeline' | 'cable' | 'cable-advisory' | 'repair-ship' | 'outage' | 'datacenter' | 'datacenterCluster' | 'ais' | 'protest' | 'protestCluster' | 'flight' | 'militaryFlight' | 'militaryVessel' | 'militaryFlightCluster' | 'militaryVesselCluster' | 'natEvent' | 'port' | 'spaceport' | 'mineral' | 'startupHub' | 'cloudRegion' | 'techHQ' | 'accelerator' | 'techEvent' | 'techHQCluster' | 'techEventCluster' | 'techActivity' | 'geoActivity' | 'stockExchange' | 'financialCenter' | 'centralBank' | 'commodityHub';
-
-interface TechEventPopupData {
-  id: string;
-  title: string;
-  location: string;
-  lat: number;
-  lng: number;
-  country: string;
-  startDate: string;
-  endDate: string;
-  url: string | null;
-  daysUntil: number;
-}
-
-interface TechHQClusterData {
-  items: TechHQ[];
-  city: string;
-  country: string;
-  count?: number;
-  faangCount?: number;
-  unicornCount?: number;
-  publicCount?: number;
-  sampled?: boolean;
-}
-
-interface TechEventClusterData {
-  items: TechEventPopupData[];
-  location: string;
-  country: string;
-  count?: number;
-  soonCount?: number;
-  sampled?: boolean;
-}
-
-// Finance popup data types
-interface StockExchangePopupData {
-  id: string;
-  name: string;
-  shortName: string;
-  city: string;
-  country: string;
-  tier: string;
-  marketCap?: number;
-  tradingHours?: string;
-  timezone?: string;
-  description?: string;
-}
-
-interface FinancialCenterPopupData {
-  id: string;
-  name: string;
-  city: string;
-  country: string;
-  type: string;
-  gfciRank?: number;
-  specialties?: string[];
-  description?: string;
-}
-
-interface CentralBankPopupData {
-  id: string;
-  name: string;
-  shortName: string;
-  city: string;
-  country: string;
-  type: string;
-  currency?: string;
-  description?: string;
-}
-
-interface CommodityHubPopupData {
-  id: string;
-  name: string;
-  city: string;
-  country: string;
-  type: string;
-  commodities?: string[];
-  description?: string;
-}
-
-interface ProtestClusterData {
-  items: SocialUnrestEvent[];
-  country: string;
-  count?: number;
-  riotCount?: number;
-  highSeverityCount?: number;
-  verifiedCount?: number;
-  totalFatalities?: number;
-  sampled?: boolean;
-}
-
-interface DatacenterClusterData {
-  items: AIDataCenter[];
-  region: string;
-  country: string;
-  count?: number;
-  totalChips?: number;
-  totalPowerMW?: number;
-  existingCount?: number;
-  plannedCount?: number;
-  sampled?: boolean;
-}
-
-interface PopupData {
-  type: PopupType;
-  data: ConflictZone | Hotspot | Earthquake | WeatherAlert | MilitaryBase | StrategicWaterway | APTGroup | CyberThreat | NuclearFacility | EconomicCenter | GammaIrradiator | Pipeline | UnderseaCable | CableAdvisory | RepairShip | InternetOutage | AIDataCenter | AisDisruptionEvent | SocialUnrestEvent | AirportDelayAlert | MilitaryFlight | MilitaryVessel | MilitaryFlightCluster | MilitaryVesselCluster | NaturalEvent | Port | Spaceport | CriticalMineralProject | StartupHub | CloudRegion | TechHQ | Accelerator | TechEventPopupData | TechHQClusterData | TechEventClusterData | ProtestClusterData | DatacenterClusterData | TechHubActivity | GeoHubActivity | StockExchangePopupData | FinancialCenterPopupData | CentralBankPopupData | CommodityHubPopupData;
-  relatedNews?: NewsItem[];
-  x: number;
-  y: number;
-}
+export type { PopupType } from './map/popup-types';
+import type {
+  TechEventPopupData,
+  TechHQClusterData,
+  TechEventClusterData,
+  StockExchangePopupData,
+  FinancialCenterPopupData,
+  CentralBankPopupData,
+  CommodityHubPopupData,
+  ProtestClusterData,
+  DatacenterClusterData,
+  PopupData,
+} from './map/popup-types';
 
 export class MapPopup {
   private container: HTMLElement;

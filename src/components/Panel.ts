@@ -3,6 +3,7 @@ import { invokeTauri } from '../services/tauri-bridge';
 import { t } from '../services/i18n';
 import { h, replaceChildren, safeHtml } from '../utils/dom-utils';
 import { trackPanelResized } from '@/services/analytics';
+import { storage } from '../utils/storage';
 
 export interface PanelOptions {
   id: string;
@@ -17,7 +18,7 @@ const PANEL_SPANS_KEY = 'worldmonitor-panel-spans';
 
 function loadPanelSpans(): Record<string, number> {
   try {
-    const stored = localStorage.getItem(PANEL_SPANS_KEY);
+    const stored = storage.getRaw(PANEL_SPANS_KEY);
     return stored ? JSON.parse(stored) : {};
   } catch {
     return {};
@@ -27,7 +28,7 @@ function loadPanelSpans(): Record<string, number> {
 function savePanelSpan(panelId: string, span: number): void {
   const spans = loadPanelSpans();
   spans[panelId] = span;
-  localStorage.setItem(PANEL_SPANS_KEY, JSON.stringify(spans));
+  storage.setRaw(PANEL_SPANS_KEY, JSON.stringify(spans));
 }
 
 function heightToSpan(height: number): number {
@@ -419,7 +420,7 @@ export class Panel {
     this.element.classList.remove('resized', 'span-1', 'span-2', 'span-3', 'span-4');
     const spans = loadPanelSpans();
     delete spans[this.panelId];
-    localStorage.setItem(PANEL_SPANS_KEY, JSON.stringify(spans));
+    storage.setRaw(PANEL_SPANS_KEY, JSON.stringify(spans));
   }
 
   protected get signal(): AbortSignal {

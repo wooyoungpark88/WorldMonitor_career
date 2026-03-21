@@ -297,7 +297,14 @@ export async function listServiceStatuses(
     const results = cached && Array.isArray(cached)
       ? cached
       : await (async () => {
-          const fresh = await Promise.all(SERVICES.map(checkServiceStatus));
+          const settled = await Promise.allSettled(SERVICES.map(checkServiceStatus));
+          const fresh = settled
+            .filter((r): r is PromiseFulfilledResult<ServiceStatus> => r.status === 'fulfilled')
+            .map(r => r.value);
+          const failures = settled.filter(r => r.status === 'rejected');
+          if (failures.length > 0) {
+            console.warn(`[ServiceStatuses] ${failures.length} service checks failed`);
+          }
           await setCachedJson(INFRA_CACHE_KEY, fresh, INFRA_CACHE_TTL);
           return fresh;
         })();
