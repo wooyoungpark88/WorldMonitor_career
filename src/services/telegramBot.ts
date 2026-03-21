@@ -126,9 +126,39 @@ export async function notifyProcurement(item: ProcurementListing): Promise<boole
   return sendMessage(TELEGRAM_TEMPLATES.procurement(item));
 }
 
+/** 알림 쿨다운: 동일 점수 조합으로 1시간 내 재발송 방지 */
+const ALERT_COOLDOWN_MS = 60 * 60 * 1000; // 1시간
+let lastAlertHash = '';
+let lastAlertTime = 0;
+
+function computeAlertHash(payload: OpportunityAlertPayload): string {
+  // 점수 + 뉴스 제목 상위 3개를 해시로 사용
+  const newsKeys = [
+    ...payload.newsByTrack.policy.slice(0, 3).map((n) => n.title),
+    ...payload.newsByTrack.investment.slice(0, 3).map((n) => n.title),
+    ...payload.newsByTrack.competitor.slice(0, 3).map((n) => n.title),
+  ].join('|');
+  return `${payload.total}-${payload.s1}-${payload.s2}-${payload.s3}-${newsKeys}`;
+}
+
 export async function notifyOpportunityScore(payload: OpportunityAlertPayload): Promise<boolean> {
   if (!payload.shouldAlert) return false;
-  return sendMessage(TELEGRAM_TEMPLATES.opportunity(payload));
+
+  const hash = computeAlertHash(payload);
+  const now = Date.now();
+
+  // 동일 내용이면 쿨다운 기간 내 재발송 차단
+  if (hash === lastAlertHash && now - lastAlertTime < ALERT_COOLDOWN_MS) {
+    console.log(`[Telegram] Alert suppressed (same content, cooldown ${Math.round((ALERT_COOLDOWN_MS - (now - lastAlertTime)) / 60000)}m remaining)`);
+    return false;
+  }
+
+  const sent = await sendMessage(TELEGRAM_TEMPLATES.opportunity(payload));
+  if (sent) {
+    lastAlertHash = hash;
+    lastAlertTime = now;
+  }
+  return sent;
 }
 
 export async function notifyCompetitor(title: string, summary: string, url: string): Promise<boolean> {

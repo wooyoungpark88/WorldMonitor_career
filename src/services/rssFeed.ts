@@ -95,7 +95,7 @@ async function fetchSingleFeed(entry: FeedEntry): Promise<RssItem[]> {
       if (!title) return;
 
       results.push({
-        id: `${entry.source}-${idx}-${Date.now()}`,
+        id: `${entry.source}-${idx}-${title.slice(0, 40)}`,
         title,
         link,
         source: entry.source,
