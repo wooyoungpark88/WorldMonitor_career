@@ -93,6 +93,37 @@ const TRACK_LABELS = {
   caretech: '케어테크',
 };
 
+// ─── Source Tier Emoji (mirrors src/config/sourceTiers.ts) ────────────────────
+const SOURCE_TIER_MAP = {
+  // Tier 1 — Direct RSS
+  'Fierce Healthcare': 1, 'MobiHealthNews': 1, 'Healthcare IT News': 1,
+  'STAT News': 1, 'Nature Digital Medicine': 1, 'Rock Health': 1,
+  'CB Insights': 1, 'Crunchbase News': 1, 'ImpactAlpha': 1,
+  'PitchBook News': 1, 'GIIN': 1,
+  '고용노동부': 1, '보건복지부': 1, '과기정통부': 1,
+  // Tier 2 — Specialized media
+  'Digital Health Today': 2, 'IEEE Spectrum Health': 2,
+  'TechCrunch Health': 2, 'TechCrunch Startups': 2,
+  '메디게이트뉴스': 2, '메디게이트 기업': 2,
+  '복지타임즈': 2, '복지타임즈 정책': 2,
+  '에이블뉴스': 2, '에이블뉴스 정책': 2,
+  '로봇신문': 2, '로봇신문 기업': 2,
+  '인공지능신문': 2, '인공지능신문 기업': 2,
+  '바이오스펙테이터': 2, '벤처스퀘어': 2, '플래텀': 2,
+  '더브이씨': 2, '스타트업엔': 2,
+  // Tier 3 — Aggregators
+  '돌봄AI 뉴스': 3, '임팩트 투자': 3, 'Digital Health VC': 3,
+  '나라장터 AI/돌봄': 3, '디지털치료제 정책': 3, '장애인 복지 정책': 3,
+  '네오펙트': 3, '뷰노': 3, '루닛': 3, '플라이투': 3,
+  'Woebot Health': 3, 'Ambient.ai': 3, '소풍벤처스': 3,
+  'MYSC': 3, 'D3쥬빌리': 3, 'Cogito': 3, 'Nourish Care': 3, 'SimCare AI': 3,
+};
+
+function tierEmoji(sourceName) {
+  const tier = SOURCE_TIER_MAP[sourceName] || 4;
+  return tier === 1 ? '🔵' : tier === 2 ? '🟢' : tier === 3 ? '🟡' : '⚪';
+}
+
 const TRACK_ALIAS = {
   '정책': 'policy', '예산': 'policy', 'policy': 'policy', 's1': 'policy',
   '투자': 'investment', '자금': 'investment', '자금유입': 'investment', 'investment': 'investment', 's2': 'investment',
@@ -132,8 +163,14 @@ async function fetchTrackNews(track) {
   const feeds = TRACK_FEEDS[track] || [];
   const results = await Promise.allSettled(feeds.map((f) => fetchRssItems(f.url)));
   const items = [];
-  for (const r of results) {
-    if (r.status === 'fulfilled') items.push(...r.value);
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (r.status === 'fulfilled') {
+      for (const item of r.value) {
+        item.sourceName = feeds[i].name;
+      }
+      items.push(...r.value);
+    }
   }
   // Deduplicate by title
   const seen = new Set();
@@ -244,9 +281,9 @@ async function handleNews(chatId, trackArg) {
     }
 
     const lines = items.slice(0, 8).map(
-      (n) => `• <a href="${n.link}">${escapeHtml(truncate(n.title))}</a>`
+      (n) => `${tierEmoji(n.sourceName)} <a href="${n.link}">${escapeHtml(truncate(n.title))}</a>`
     );
-    await sendTelegram(chatId, `📰 <b>${escapeHtml(label)}</b> 최신 뉴스\n\n${lines.join('\n')}`);
+    await sendTelegram(chatId, `📰 <b>${escapeHtml(label)}</b> 최신 뉴스\n\n${lines.join('\n')}\n\n🔵직접 🟢전문 🟡애그리게이터 ⚪기타`);
   } else {
     const allNews = await fetchAllTrackNews();
     const sections = [];
@@ -258,12 +295,12 @@ async function handleNews(chatId, trackArg) {
         continue;
       }
       const lines = items.slice(0, 5).map(
-        (n) => `  • <a href="${n.link}">${escapeHtml(truncate(n.title))}</a>`
+        (n) => `  ${tierEmoji(n.sourceName)} <a href="${n.link}">${escapeHtml(truncate(n.title))}</a>`
       );
       sections.push(`📌 <b>${label}</b>\n${lines.join('\n')}`);
     }
 
-    await sendTelegram(chatId, `📰 <b>트랙별 최신 뉴스</b>\n\n${sections.join('\n\n')}`);
+    await sendTelegram(chatId, `📰 <b>트랙별 최신 뉴스</b>\n\n${sections.join('\n\n')}\n\n🔵직접 🟢전문 🟡애그리게이터 ⚪기타`);
   }
 }
 

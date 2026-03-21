@@ -225,6 +225,20 @@ const ALLOWED_DOMAINS = [
   'medigatenews.com',
   'bokjitimes.com',
   'ablenews.co.kr',
+  // Care variant - expanded direct feeds
+  'www.irobotnews.com',
+  'www.aitimes.com',
+  'www.biospectator.com',
+  'www.venturesquare.net',
+  'platum.kr',
+  'thevc.kr',
+  'www.startupn.kr',
+  'www.medigatenews.com',
+  'www.mohw.go.kr',
+  'www.msit.go.kr',
+  'www.moel.go.kr',
+  'www.bokjitimes.com',
+  'www.ablenews.co.kr',
 ];
 
 export default async function handler(req) {

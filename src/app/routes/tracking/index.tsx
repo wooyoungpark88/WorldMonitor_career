@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fetchAllNews } from '../../../services/rssFeed';
 import { filterByKeywords, sortByRelevance, sortByDate, sortByTrack, sortByKeywordCount, KEYWORD_CATEGORY_LABELS, type FilteredRssItem } from '../../../services/keywordFilter';
+import { crossVerify } from '../../../services/crossVerification';
 import { TRACK_META } from '../../../config/trackConfig';
 import { calculateOpportunityScore } from '../../../services/scoreCalculator';
 import { notifyOpportunityScore } from '../../../services/telegramBot';
@@ -69,7 +70,7 @@ export default function TrackingDashboard() {
     setError(null);
     try {
       const items = await fetchAllNews();
-      const filtered = sortByRelevance(filterByKeywords(items));
+      const filtered = sortByRelevance(crossVerify(filterByKeywords(items)));
       setNews(filtered);
 
       const scoreResult = calculateOpportunityScore(filtered);

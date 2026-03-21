@@ -967,47 +967,75 @@ const FINANCE_FEEDS: Record<string, Feed[]> = {
 // CARE VARIANT FEEDS (AI Care/Welfare)
 // ============================================
 const CARE_FEEDS: Record<string, Feed[]> = {
-  // 1. Care Tech Track
+  // 1. Care Tech Track — Direct RSS prioritized
   careTech: [
+    // Direct RSS (Tier 1)
     { name: 'Fierce Healthcare', url: rss('https://www.fiercehealthcare.com/rss/xml') },
     { name: 'MobiHealthNews', url: rss('https://www.mobihealthnews.com/feed') },
     { name: 'Healthcare IT News', url: rss('https://www.healthcareitnews.com/feed') },
     { name: 'Digital Health Today', url: rss('https://digitalhealthtoday.com/feed/') },
     { name: 'STAT News', url: rss('https://www.statnews.com/feed/') },
-    { name: '메디게이트뉴스', url: rss('https://news.google.com/rss/search?q=site:medigatenews.com+AI+OR+의료+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
-    { name: '복지타임즈', url: rss('https://news.google.com/rss/search?q=site:bokjitimes.com+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
-    { name: '에이블뉴스', url: rss('https://news.google.com/rss/search?q=site:ablenews.co.kr+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    { name: 'Nature Digital Medicine', url: rss('https://www.nature.com/npjdigitalmed.rss') },
+    { name: 'IEEE Spectrum Health', url: rss('https://spectrum.ieee.org/feeds/topic/biomedical') },
+    { name: 'TechCrunch Health', url: rss('https://techcrunch.com/tag/health/feed/') },
+    // Korean direct RSS (Tier 2)
+    { name: '메디게이트뉴스', url: rss('https://www.medigatenews.com/rss'), lang: 'ko' },
+    { name: '복지타임즈', url: rss('https://www.bokjitimes.com/rss/allArticle.xml'), lang: 'ko' },
+    { name: '에이블뉴스', url: rss('https://www.ablenews.co.kr/rss/allArticle.xml'), lang: 'ko' },
+    { name: '로봇신문', url: rss('https://www.irobotnews.com/rss/allArticle.xml'), lang: 'ko' },
+    { name: '인공지능신문', url: rss('https://www.aitimes.com/rss/allArticle.xml'), lang: 'ko' },
+    // Google News fallback (Tier 3)
+    { name: '돌봄AI 뉴스', url: rss('https://news.google.com/rss/search?q=돌봄+AI+행동분석+디지털치료제+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
   ],
 
-  // 2. Impact & Funding Track
+  // 2. Impact & Funding Track — Direct RSS prioritized
   impactFunding: [
-    { name: 'Crunchbase Health', url: rss('https://news.google.com/rss/search?q=site:crunchbase.com/news+health+OR+care+OR+impact+when:7d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'CB Insights Health', url: rss('https://news.google.com/rss/search?q=site:cbinsights.com+health+OR+digital+health+when:14d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Rock Health', url: rss('https://news.google.com/rss/search?q=site:rockhealth.com+news+when:14d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'GIIN', url: rss('https://news.google.com/rss/search?q=site:thegiin.org+when:14d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'ImpactAlpha', url: rss('https://news.google.com/rss/search?q=site:impactalpha.com+health+OR+care+when:14d&hl=en-US&gl=US&ceid=US:en') },
-    { name: '소풍벤처스', url: rss('https://news.google.com/rss/search?q=소풍벤처스+투자+OR+임팩트+when:14d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
-    { name: 'MYSC', url: rss('https://news.google.com/rss/search?q=MYSC+투자+OR+소셜벤처+when:14d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
-    { name: 'D3쥬빌리', url: rss('https://news.google.com/rss/search?q=D3쥬빌리파트너스+투자+OR+임팩트+when:14d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    // Direct RSS (Tier 1)
+    { name: 'Rock Health', url: rss('https://rockhealth.com/feed/') },
+    { name: 'CB Insights', url: rss('https://www.cbinsights.com/rss/content-feed') },
+    { name: 'ImpactAlpha', url: rss('https://impactalpha.com/feed/') },
+    { name: 'Crunchbase News', url: rss('https://news.crunchbase.com/feed/') },
+    { name: 'TechCrunch Startups', url: rss('https://techcrunch.com/tag/startups/feed/') },
+    { name: 'PitchBook News', url: rss('https://pitchbook.com/news/feed') },
+    { name: 'GIIN', url: rss('https://thegiin.org/feed/') },
+    // Korean direct RSS (Tier 2)
+    { name: '벤처스퀘어', url: rss('https://www.venturesquare.net/feed'), lang: 'ko' },
+    { name: '플래텀', url: rss('https://platum.kr/feed'), lang: 'ko' },
+    { name: '더브이씨', url: rss('https://thevc.kr/feed'), lang: 'ko' },
+    { name: '스타트업엔', url: rss('https://www.startupn.kr/rss/allArticle.xml'), lang: 'ko' },
+    // Google News fallback (Tier 3)
+    { name: '임팩트 투자', url: rss('https://news.google.com/rss/search?q=임팩트+투자+소셜벤처+돌봄+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    { name: 'Digital Health VC', url: rss('https://news.google.com/rss/search?q=digital+health+funding+series+when:7d&hl=en-US&gl=US&ceid=US:en') },
   ],
 
-  // 3. Public Procurement Track
+  // 3. Public Procurement & Policy Track — Direct RSS prioritized
   publicProcurement: [
-    { name: '나라장터 AI/돌봄', url: rss('https://news.google.com/rss/search?q=나라장터+(AI+OR+돌봄+OR+장애+OR+정신건강+OR+행동분석)+입찰+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
-    { name: '보건복지부', url: rss('https://news.google.com/rss/search?q=site:mohw.go.kr+보도자료+(AI+OR+돌봄+OR+정신건강)+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
-    { name: '과기정통부', url: rss('https://news.google.com/rss/search?q=site:msit.go.kr+보도자료+(인공지능+OR+디지털치료제+OR+헬스케어)+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
-    { name: '고용노동부', url: rss('https://news.google.com/rss/search?q=site:moel.go.kr+보도자료+(장애인+OR+정신건강+OR+근로복지)+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    // Korean government direct RSS (Tier 1)
+    { name: '고용노동부', url: rss('https://www.moel.go.kr/rss/news.do'), lang: 'ko' },
+    { name: '보건복지부', url: rss('https://www.mohw.go.kr/board/rss.do'), lang: 'ko' },
+    { name: '과기정통부', url: rss('https://www.msit.go.kr/bbs/rssList.do'), lang: 'ko' },
+    { name: '복지타임즈 정책', url: rss('https://www.bokjitimes.com/rss/S1N2.xml'), lang: 'ko' },
+    { name: '에이블뉴스 정책', url: rss('https://www.ablenews.co.kr/rss/S1N1.xml'), lang: 'ko' },
+    // Google News fallback (Tier 3)
+    { name: '나라장터 AI/돌봄', url: rss('https://news.google.com/rss/search?q=나라장터+(AI+OR+돌봄+OR+장애+OR+정신건강)+입찰+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    { name: '디지털치료제 정책', url: rss('https://news.google.com/rss/search?q=디지털치료제+수가+OR+급여+OR+인허가+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    { name: '장애인 복지 정책', url: rss('https://news.google.com/rss/search?q=장애인+복지+예산+OR+고시+OR+시행령+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
   ],
 
-  // 4. Competitor Intelligence Track
+  // 4. Competitor Intelligence Track — Direct RSS + targeted Google News
   competitorIntelligence: [
-    { name: 'Ambient.ai', url: rss('https://news.google.com/rss/search?q=site:ambient.ai+OR+"Ambient.ai"+when:14d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Cogito', url: rss('https://news.google.com/rss/search?q=site:cogitocorp.com+OR+"Cogito+Corp"+when:14d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Woebot Health', url: rss('https://news.google.com/rss/search?q=site:woebothealth.com+OR+"Woebot+Health"+when:14d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Nourish Care', url: rss('https://news.google.com/rss/search?q=site:nourishcare.com+OR+"Nourish+Care"+when:14d&hl=en-US&gl=US&ceid=US:en') },
+    // Direct RSS where available (Tier 1-2)
+    { name: '로봇신문 기업', url: rss('https://www.irobotnews.com/rss/S1N4.xml'), lang: 'ko' },
+    { name: '바이오스펙테이터', url: rss('https://www.biospectator.com/rss/allArticle.xml'), lang: 'ko' },
+    { name: '메디게이트 기업', url: rss('https://www.medigatenews.com/rss/company'), lang: 'ko' },
+    { name: '인공지능신문 기업', url: rss('https://www.aitimes.com/rss/S1N3.xml'), lang: 'ko' },
+    // Targeted competitor searches (Tier 3) — keep Google News for specific company names
     { name: '네오펙트', url: rss('https://news.google.com/rss/search?q=네오펙트+OR+Neofect+when:14d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
-    { name: '뷰노', url: rss('https://news.google.com/rss/search?q=뷰노+OR+Vuno+AI+when:14d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
-    { name: 'SimCare AI', url: rss('https://news.google.com/rss/search?q="SimCare+AI"+OR+SimCare+startup+when:14d&hl=en-US&gl=US&ceid=US:en') },
+    { name: '뷰노', url: rss('https://news.google.com/rss/search?q=뷰노+AI+OR+Vuno+when:14d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    { name: '루닛', url: rss('https://news.google.com/rss/search?q=루닛+OR+Lunit+when:14d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    { name: '플라이투', url: rss('https://news.google.com/rss/search?q=플라이투+OR+Flyto+투자+when:14d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    { name: 'Woebot Health', url: rss('https://news.google.com/rss/search?q="Woebot+Health"+OR+Woebot+AI+when:14d&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'Ambient.ai', url: rss('https://news.google.com/rss/search?q="Ambient.ai"+AI+vision+when:14d&hl=en-US&gl=US&ceid=US:en') },
   ],
 };
 

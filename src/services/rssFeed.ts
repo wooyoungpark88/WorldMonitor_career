@@ -5,6 +5,7 @@
 
 import type { Feed } from '@/types';
 import { FEEDS } from '@/config/feeds';
+import { deduplicateNews } from './deduplication';
 
 export interface RssItem {
   id: string;
@@ -129,7 +130,7 @@ export async function fetchAllNews(): Promise<RssItem[]> {
     return db - da;
   });
 
-  return allItems;
+  return deduplicateNews(allItems);
 }
 
 export { FEED_LIST };

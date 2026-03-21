@@ -4,6 +4,7 @@
  */
 
 import type { RssItem } from './rssFeed';
+import { getSourceTier } from '@/config/sourceTiers';
 
 export type KeywordCategory = 'market' | 'bm' | 'policy' | 'investment';
 
@@ -119,6 +120,11 @@ export function filterByKeywords(items: RssItem[]): FilteredRssItem[] {
     if (keywords_matched.length > 0) {
       relevance_score = Math.min(100, 50 + keywords_matched.length * 10);
     }
+
+    // Source tier bonus: Tier 1 +15, Tier 2 +10, Tier 3 +0, Tier 4 -5
+    const tier = getSourceTier(item.source);
+    const tierBonus = tier === 1 ? 15 : tier === 2 ? 10 : tier === 4 ? -5 : 0;
+    relevance_score = Math.max(0, Math.min(100, relevance_score + tierBonus));
 
     return {
       ...item,
