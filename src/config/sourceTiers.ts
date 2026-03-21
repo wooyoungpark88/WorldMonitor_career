@@ -20,19 +20,19 @@ export const CARE_SOURCE_TIERS: Record<string, SourceTier> = {
   'CB Insights': 1,
   'Crunchbase News': 1,
   'ImpactAlpha': 1,
-  'PitchBook News': 1,
-  'GIIN': 1,
-  '고용노동부': 1,
-  '보건복지부': 1,
-  '과기정통부': 1,
+  'PitchBook News': 3, // Google News fallback (direct RSS blocked by Cloudflare)
+  'GIIN': 3, // Google News fallback (403 security challenge)
+  '고용노동부': 3, // Google News site: search (direct RSS blocked by firewall)
+  '보건복지부': 3, // Google News site: search
+  '과기정통부': 3, // Google News site: search
 
   // Tier 2 — Domain-specialized media
   'Digital Health Today': 2,
   'IEEE Spectrum Health': 2,
   'TechCrunch Health': 2,
   'TechCrunch Startups': 2,
-  '메디게이트뉴스': 2,
-  '메디게이트 기업': 2,
+  '메디게이트뉴스': 3, // Google News fallback (direct RSS requires login)
+  '메디게이트 기업': 3, // Google News fallback
   '복지타임즈': 2,
   '복지타임즈 정책': 2,
   '에이블뉴스': 2,
@@ -41,10 +41,10 @@ export const CARE_SOURCE_TIERS: Record<string, SourceTier> = {
   '로봇신문 기업': 2,
   '인공지능신문': 2,
   '인공지능신문 기업': 2,
-  '바이오스펙테이터': 2,
+  '바이오스펙테이터': 3, // Google News fallback (direct RSS 404)
   '벤처스퀘어': 2,
   '플래텀': 2,
-  '더브이씨': 2,
+  '더브이씨': 3, // Google News fallback (direct RSS 404)
   '스타트업엔': 2,
 
   // Tier 3 — Aggregators (Google News based)

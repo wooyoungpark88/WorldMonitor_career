@@ -976,10 +976,10 @@ const CARE_FEEDS: Record<string, Feed[]> = {
     { name: 'Digital Health Today', url: rss('https://digitalhealthtoday.com/feed/') },
     { name: 'STAT News', url: rss('https://www.statnews.com/feed/') },
     { name: 'Nature Digital Medicine', url: rss('https://www.nature.com/npjdigitalmed.rss') },
-    { name: 'IEEE Spectrum Health', url: rss('https://spectrum.ieee.org/feeds/topic/biomedical') },
+    { name: 'IEEE Spectrum Health', url: rss('https://spectrum.ieee.org/feeds/topic/biomedical.rss') },
     { name: 'TechCrunch Health', url: rss('https://techcrunch.com/tag/health/feed/') },
     // Korean direct RSS (Tier 2)
-    { name: '메디게이트뉴스', url: rss('https://www.medigatenews.com/rss'), lang: 'ko' },
+    { name: '메디게이트뉴스', url: rss('https://news.google.com/rss/search?q=site:medigatenews.com+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
     { name: '복지타임즈', url: rss('https://www.bokjitimes.com/rss/allArticle.xml'), lang: 'ko' },
     { name: '에이블뉴스', url: rss('https://www.ablenews.co.kr/rss/allArticle.xml'), lang: 'ko' },
     { name: '로봇신문', url: rss('https://www.irobotnews.com/rss/allArticle.xml'), lang: 'ko' },
@@ -992,16 +992,16 @@ const CARE_FEEDS: Record<string, Feed[]> = {
   impactFunding: [
     // Direct RSS (Tier 1)
     { name: 'Rock Health', url: rss('https://rockhealth.com/feed/') },
-    { name: 'CB Insights', url: rss('https://www.cbinsights.com/rss/content-feed') },
+    { name: 'CB Insights', url: rss('https://www.cbinsights.com/research/feed/') },
     { name: 'ImpactAlpha', url: rss('https://impactalpha.com/feed/') },
     { name: 'Crunchbase News', url: rss('https://news.crunchbase.com/feed/') },
     { name: 'TechCrunch Startups', url: rss('https://techcrunch.com/tag/startups/feed/') },
-    { name: 'PitchBook News', url: rss('https://pitchbook.com/news/feed') },
-    { name: 'GIIN', url: rss('https://thegiin.org/feed/') },
+    { name: 'PitchBook News', url: rss('https://news.google.com/rss/search?q=site:pitchbook.com+digital+health+when:14d&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'GIIN', url: rss('https://news.google.com/rss/search?q=site:thegiin.org+when:14d&hl=en-US&gl=US&ceid=US:en') },
     // Korean direct RSS (Tier 2)
     { name: '벤처스퀘어', url: rss('https://www.venturesquare.net/feed'), lang: 'ko' },
     { name: '플래텀', url: rss('https://platum.kr/feed'), lang: 'ko' },
-    { name: '더브이씨', url: rss('https://thevc.kr/feed'), lang: 'ko' },
+    { name: '더브이씨', url: rss('https://news.google.com/rss/search?q=site:thevc.kr+when:14d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
     { name: '스타트업엔', url: rss('https://www.startupn.kr/rss/allArticle.xml'), lang: 'ko' },
     // Google News fallback (Tier 3)
     { name: '임팩트 투자', url: rss('https://news.google.com/rss/search?q=임팩트+투자+소셜벤처+돌봄+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
@@ -1010,10 +1010,10 @@ const CARE_FEEDS: Record<string, Feed[]> = {
 
   // 3. Public Procurement & Policy Track — Direct RSS prioritized
   publicProcurement: [
-    // Korean government direct RSS (Tier 1)
-    { name: '고용노동부', url: rss('https://www.moel.go.kr/rss/news.do'), lang: 'ko' },
-    { name: '보건복지부', url: rss('https://www.mohw.go.kr/board/rss.do'), lang: 'ko' },
-    { name: '과기정통부', url: rss('https://www.msit.go.kr/bbs/rssList.do'), lang: 'ko' },
+    // Korean government (Google News site: search — direct RSS blocked by firewall)
+    { name: '고용노동부', url: rss('https://news.google.com/rss/search?q=site:moel.go.kr+보도자료+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    { name: '보건복지부', url: rss('https://news.google.com/rss/search?q=site:mohw.go.kr+보도자료+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    { name: '과기정통부', url: rss('https://news.google.com/rss/search?q=site:msit.go.kr+보도자료+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
     { name: '복지타임즈 정책', url: rss('https://www.bokjitimes.com/rss/S1N2.xml'), lang: 'ko' },
     { name: '에이블뉴스 정책', url: rss('https://www.ablenews.co.kr/rss/S1N1.xml'), lang: 'ko' },
     // Google News fallback (Tier 3)
@@ -1026,8 +1026,8 @@ const CARE_FEEDS: Record<string, Feed[]> = {
   competitorIntelligence: [
     // Direct RSS where available (Tier 1-2)
     { name: '로봇신문 기업', url: rss('https://www.irobotnews.com/rss/S1N4.xml'), lang: 'ko' },
-    { name: '바이오스펙테이터', url: rss('https://www.biospectator.com/rss/allArticle.xml'), lang: 'ko' },
-    { name: '메디게이트 기업', url: rss('https://www.medigatenews.com/rss/company'), lang: 'ko' },
+    { name: '바이오스펙테이터', url: rss('https://news.google.com/rss/search?q=site:biospectator.com+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
+    { name: '메디게이트 기업', url: rss('https://news.google.com/rss/search?q=site:medigatenews.com+기업+OR+투자+OR+인수+when:7d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
     { name: '인공지능신문 기업', url: rss('https://www.aitimes.com/rss/S1N3.xml'), lang: 'ko' },
     // Targeted competitor searches (Tier 3) — keep Google News for specific company names
     { name: '네오펙트', url: rss('https://news.google.com/rss/search?q=네오펙트+OR+Neofect+when:14d&hl=ko&gl=KR&ceid=KR:ko'), lang: 'ko' },
