@@ -15243,3 +15243,65 @@ body.has-critical-banner .panels-grid {
     grid-row: unset !important;
   }
 }
+
+/* ============================================================
+   CareRadar UI Animations (from new project)
+   ============================================================ */
+
+@keyframes flowRight {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.15); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDots {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes drawLine {
+  from { stroke-dashoffset: 200; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes progressSlide {
+  0%   { transform: translateX(-100%) scaleX(0.6); }
+  50%  { transform: translateX(60%)   scaleX(1); }
+  100% { transform: translateX(250%)  scaleX(0.6); }
+}
+
+.animate-progress-bar {
+  animation: progressSlide 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes spinOnce {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.animate-spin-loop {
+  animation: spinOnce 0.8s linear infinite;
+}
+
+@keyframes metricPopupIn {
+  from { opacity: 0; transform: scale(0.94) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Hide scrollbar but keep scrollability */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

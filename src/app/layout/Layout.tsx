@@ -1,21 +1,21 @@
 import { ReactNode, useState, useCallback } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Search, Bell, Settings as SettingsIcon, User, Activity, BookOpen, Database } from 'lucide-react';
+import { Settings as SettingsIcon, Activity, BookOpen, Database } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
+const navItemsMeta = [
+  { label: 'Tracking', path: '/tracking', icon: Activity, riIcon: 'ri-pulse-line' },
+  { label: 'Study', path: '/study', icon: BookOpen, riIcon: 'ri-book-open-line' },
+  { label: 'Knowledge Base', path: '/knowledge', icon: Database, riIcon: 'ri-database-2-line' },
+  { label: 'Settings', path: '/settings', icon: SettingsIcon, riIcon: 'ri-settings-3-line' },
+];
+
 export default function Layout({ children }: LayoutProps) {
   const [location, navigate] = useLocation();
   const [headerSearch, setHeaderSearch] = useState('');
-
-  const navItems = [
-    { label: 'Tracking', path: '/tracking', icon: Activity },
-    { label: 'Study', path: '/study', icon: BookOpen },
-    { label: 'Knowledge Base', path: '/knowledge', icon: Database },
-    { label: 'Settings', path: '/settings', icon: SettingsIcon },
-  ];
 
   const handleSearch = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && headerSearch.trim()) {
@@ -27,43 +27,67 @@ export default function Layout({ children }: LayoutProps) {
   }, [headerSearch, location, navigate]);
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-[#0a0f0a] text-gray-900 dark:text-gray-100 font-sans overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-64 flex flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-[#141414] shadow-sm z-10">
-        <div className="h-16 flex items-center px-6 border-b border-gray-200 dark:border-gray-800">
-          <Link href="/tracking" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-400">
-            CareRadar
-          </Link>
-          <span className="ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold bg-emerald-500/10 text-emerald-500 rounded">v3.2</span>
+    <div className="flex h-screen bg-[#f7f9f8] text-gray-900 font-sans overflow-hidden" style={{ fontFamily: "'Inter', 'Noto Sans KR', sans-serif" }}>
+      {/* Sidebar — teal branding */}
+      <aside className="w-56 flex flex-col border-r border-gray-100 bg-white shadow-sm z-10">
+        {/* Logo */}
+        <div className="px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
+          <div className="flex items-center gap-2">
+            <Link href="/tracking">
+              <span className="text-[#2ec4a9] font-black text-lg tracking-tight cursor-pointer">CareRadar</span>
+            </Link>
+            <span className="bg-[#e6faf6] text-[#2ec4a9] text-[10px] font-semibold px-1.5 py-0.5 rounded-full">V3.2</span>
+          </div>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
+        {/* Navigation */}
+        <nav className="px-3 py-4 shrink-0">
+          {navItemsMeta.map((item) => {
             const isActive = location.startsWith(item.path);
             return (
               <Link key={item.path} href={item.path}>
-                <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
-                  isActive 
-                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 font-medium' 
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'
-                }`}>
-                  <Icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </div>
+                <button
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? 'bg-[#e6faf6] text-[#2ec4a9]'
+                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                  }`}
+                >
+                  <span className="w-5 h-5 flex items-center justify-center">
+                    <i className={`${item.riIcon} text-base`} />
+                  </span>
+                  {item.label}
+                </button>
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer">
-            <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-              <User className="w-4 h-4" />
+        {/* Inspirational Quote */}
+        <div className="px-4 pb-3 shrink-0">
+          <div className="relative px-3 pt-3 pb-3 rounded-xl bg-[#f7fdfb] border border-[#d4f3ec]">
+            <span className="absolute top-2 left-2.5 text-[28px] leading-none text-[#2ec4a9] font-serif opacity-40 select-none">&ldquo;</span>
+            <p className="text-[11px] leading-[1.65] text-gray-500 font-medium pl-3 pt-1 italic">
+              Stress primarily comes from not taking action.
+            </p>
+            <p className="mt-2 pl-3 text-[10px] font-semibold text-[#2ec4a9] tracking-wide uppercase">
+              — Jeff Bezos
+            </p>
+          </div>
+        </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* User Profile */}
+        <div className="px-4 py-4 border-t border-gray-100 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 flex items-center justify-center rounded-full bg-[#2ec4a9] text-white text-xs font-bold shrink-0">
+              L
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">Leader</p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 truncate">CareVia Team</p>
+              <p className="text-sm font-semibold text-gray-800 leading-tight truncate">Leader</p>
+              <p className="text-xs text-gray-400 truncate">CareVia Team</p>
             </div>
           </div>
         </div>
@@ -72,31 +96,33 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Navigation */}
-        <header className="h-16 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#141414] shadow-sm z-10">
+        <header className="h-16 flex items-center justify-between px-6 border-b border-gray-100 bg-white shadow-sm z-10">
           <div className="flex-1 max-w-xl flex items-center gap-2">
             <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input 
-                type="text" 
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center">
+                <i className="ri-search-line text-gray-400 text-sm" />
+              </span>
+              <input
+                type="text"
                 value={headerSearch}
                 onChange={(e) => setHeaderSearch(e.target.value)}
                 onKeyDown={handleSearch}
-                placeholder="Search news, companies, frameworks..." 
-                className="w-full pl-9 pr-4 py-2 bg-gray-100 dark:bg-[#0a0f0a] border-transparent focus:bg-white dark:focus:bg-[#1a1f1a] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-lg text-sm transition-colors dark:text-gray-200 outline-none placeholder:text-gray-500"
+                placeholder="Search news, companies, frameworks..."
+                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-100 focus:bg-white focus:border-[#2ec4a9] focus:ring-1 focus:ring-[#2ec4a9]/30 rounded-xl text-sm transition-colors outline-none placeholder:text-gray-400"
               />
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#141414]"></span>
+            <button className="relative w-9 h-9 flex items-center justify-center bg-white border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer">
+              <i className="ri-notification-3-line text-gray-500 text-base" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-400 rounded-full" />
             </button>
           </div>
         </header>
 
         {/* Scrollable Page Content */}
-        <main className="flex-1 overflow-auto bg-gray-50 dark:bg-[#0a0f0a] relative">
+        <main className="flex-1 overflow-auto bg-[#f7f9f8] relative">
           <div className="absolute inset-0 p-6">
             {children}
           </div>
