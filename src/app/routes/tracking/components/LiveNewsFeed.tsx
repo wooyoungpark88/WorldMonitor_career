@@ -277,7 +277,7 @@ const LiveNewsFeed = ({
           <div className="relative">
             <button
               onClick={() => setShowSortDropdown(!showSortDropdown)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 cursor-pointer whitespace-nowrap"
+              className="flex items-center gap-1.5 px-3 py-2 min-h-[44px] border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 cursor-pointer whitespace-nowrap"
             >
               <span className="hidden sm:inline">{sortBy}</span>
               <span className="sm:hidden">정렬</span>
@@ -304,7 +304,7 @@ const LiveNewsFeed = ({
               </div>
             )}
           </div>
-          <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+          <button className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
             <i className="ri-bookmark-line text-gray-500 text-sm" />
           </button>
           <button className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 cursor-pointer whitespace-nowrap">
@@ -328,7 +328,7 @@ const LiveNewsFeed = ({
                 setImpactOnly(false);
                 if (hasVisionFilter) onClearVisionFilter?.();
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer whitespace-nowrap transition-colors flex-shrink-0 ${
+              className={`flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-full text-xs font-medium cursor-pointer whitespace-nowrap transition-colors flex-shrink-0 ${
                 activeFilter === cat.label
                   ? 'bg-[#2ec4a9] text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -418,7 +418,7 @@ const LiveNewsFeed = ({
             <div
               key={article.id}
               onClick={() => onArticleClick(article)}
-              className={`px-4 sm:px-5 py-4 transition-colors group cursor-pointer ${
+              className={`px-4 sm:px-5 py-4 min-h-[44px] transition-colors group cursor-pointer ${
                 selectedArticleId === article.id
                   ? 'bg-[#f0faf8] border-l-2 border-[#2ec4a9]'
                   : 'hover:bg-gray-50 border-l-2 border-transparent'
@@ -451,7 +451,7 @@ const LiveNewsFeed = ({
               </div>
               <div className="hidden sm:flex items-center gap-1.5 mb-1.5 flex-wrap">
                 {article.tags.map((tag, i) => (
-                  <span key={i} className="text-[11px] px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
+                  <span key={i} className="text-[11px] sm:text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
                     {tag}
                   </span>
                 ))}
@@ -480,7 +480,7 @@ const LiveNewsFeed = ({
             zIndex: 9998,
             animation: 'metricPopupIn 0.12s ease-out',
           }}
-          className="bg-white rounded-xl border border-gray-100 overflow-hidden"
+          className="bg-white rounded-xl border border-gray-100 overflow-hidden max-h-[50vh] overflow-y-auto"
           onMouseDown={(e) => e.preventDefault()}
         >
           {searchQuery.length === 0 ? (
@@ -499,7 +499,7 @@ const LiveNewsFeed = ({
                   <button
                     key={tag}
                     onClick={() => selectSuggestion(tag)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors whitespace-nowrap ${
+                    className={`px-2.5 py-1 min-h-[36px] rounded-full text-xs font-medium cursor-pointer transition-colors whitespace-nowrap ${
                       focusedIndex === i
                         ? 'bg-[#2ec4a9] text-white'
                         : 'bg-[#edfaf6] text-[#2ec4a9] hover:bg-[#d6f5ec]'

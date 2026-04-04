@@ -29,7 +29,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="flex h-screen bg-[#f7f9f8] text-gray-900 font-sans overflow-hidden" style={{ fontFamily: "'Inter', 'Noto Sans KR', sans-serif" }}>
       {/* Sidebar — teal branding */}
-      <aside className="w-56 flex flex-col border-r border-gray-100 bg-white shadow-sm z-10">
+      <aside className="hidden lg:flex w-56 flex-col border-r border-gray-100 bg-white shadow-sm z-10">
         {/* Logo */}
         <div className="px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-2">
@@ -96,7 +96,15 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Navigation */}
-        <header className="h-16 flex items-center justify-between px-6 border-b border-gray-100 bg-white shadow-sm z-10">
+        <header className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-gray-100 bg-white shadow-sm z-10">
+          {/* Hamburger menu for mobile */}
+          <button
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl border border-gray-100 bg-white hover:bg-gray-50 cursor-pointer mr-2 shrink-0"
+            onClick={() => window.dispatchEvent(new CustomEvent('careradar:toggle-sidebar'))}
+            aria-label="Toggle sidebar"
+          >
+            <i className="ri-menu-line text-gray-600 text-lg" />
+          </button>
           <div className="flex-1 max-w-xl flex items-center gap-2">
             <div className="relative w-full max-w-md">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center">
@@ -123,7 +131,7 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* Scrollable Page Content */}
         <main className="flex-1 overflow-auto bg-[#f7f9f8] relative">
-          <div className="absolute inset-0 p-6">
+          <div className="absolute inset-0 p-6" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
             {children}
           </div>
         </main>

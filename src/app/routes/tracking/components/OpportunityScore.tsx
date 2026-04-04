@@ -89,12 +89,12 @@ const SignalBar = ({ label, icon, value, prevValue, color, bgColor, description,
 
   return (
     <div className="mb-3">
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between mb-1 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-1.5 min-w-0">
           <span className={`w-4 h-4 flex items-center justify-center ${color}`}>
             <i className={`${icon} text-sm`} />
           </span>
-          <span className="text-xs font-semibold text-gray-600">{label}</span>
+          <span className="text-xs font-semibold text-gray-600 truncate">{label}</span>
         </div>
         <div className="flex items-center gap-2">
           <div className={`flex items-center gap-0.5 text-[11px] font-semibold ${deltaColor}`}>
@@ -252,12 +252,12 @@ const OpportunityScore = ({ onArticleClick }: OpportunityScoreProps) => {
       </div>
 
       {/* Period Tabs */}
-      <div className="flex items-center gap-1 mb-3 bg-gray-50 rounded-lg p-0.5 w-fit">
+      <div className="flex w-full sm:w-auto items-center gap-1 mb-3 bg-gray-50 rounded-lg p-0.5 w-full sm:w-fit">
         {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
           <button
             key={p}
             onClick={() => setPeriod(p)}
-            className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex-1 sm:flex-none px-3 py-2 min-h-[44px] rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
               period === p ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
             }`}
           >

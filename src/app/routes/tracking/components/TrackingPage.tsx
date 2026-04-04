@@ -173,10 +173,10 @@ const TrackingPage = () => {
       <div className="lg:ml-56 flex flex-col min-h-screen">
 
         {/* Mobile Top Bar */}
-        <div className="lg:hidden sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+        <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => setMobileSidebarOpen(true)}
-            className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-100 bg-white cursor-pointer"
+            className="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-100 bg-white cursor-pointer"
           >
             <i className="ri-menu-line text-gray-600 text-base" />
           </button>
@@ -184,7 +184,7 @@ const TrackingPage = () => {
           <div className="flex items-center gap-1 p-0.5 bg-gray-100 rounded-full">
             <button
               onClick={() => setMobileTab('news')}
-              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-4 py-2.5 min-h-[44px] rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                 mobileTab === 'news' ? 'bg-white text-gray-800' : 'text-gray-500'
               }`}
             >
@@ -192,14 +192,14 @@ const TrackingPage = () => {
             </button>
             <button
               onClick={() => setMobileTab('insights')}
-              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-4 py-2.5 min-h-[44px] rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                 mobileTab === 'insights' ? 'bg-white text-gray-800' : 'text-gray-500'
               }`}
             >
               인사이트
             </button>
           </div>
-          <button className="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 rounded-xl relative cursor-pointer">
+          <button className="w-10 h-10 flex items-center justify-center bg-white border border-gray-100 rounded-xl relative cursor-pointer">
             <i className="ri-notification-3-line text-gray-500 text-base" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-400 rounded-full" />
           </button>
@@ -297,6 +297,9 @@ const TrackingPage = () => {
         bookmarked={selectedArticle ? bookmarked.includes(selectedArticle.id) : false}
         onToggleBookmark={handleToggleBookmark}
       />
+
+      {/* Safe area bottom padding for devices with home indicators */}
+      <div className="w-full" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} />
     </div>
   );
 };

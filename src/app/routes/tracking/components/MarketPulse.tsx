@@ -69,12 +69,12 @@ const MarketPulse = ({ onArticleClick }: MarketPulseProps) => {
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full ${colors[i]} inline-block`} />
-                  <span className="text-xs text-gray-600 font-medium">{track.label}</span>
+                  <span className="text-xs text-gray-600 font-medium truncate">{track.label}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={(e) => handleCountClick(e, track)}
-                    className={`text-xs font-bold ${textColors[i]} hover:underline cursor-pointer transition-opacity hover:opacity-70 whitespace-nowrap`}
+                    className={`px-2 py-1.5 min-h-[36px] rounded text-xs font-bold ${textColors[i]} hover:underline cursor-pointer transition-opacity hover:opacity-70 whitespace-nowrap flex items-center`}
                     title="관련 기사 보기"
                   >
                     {track.count}
@@ -82,7 +82,7 @@ const MarketPulse = ({ onArticleClick }: MarketPulseProps) => {
                   <span className="text-[11px] text-gray-300">{pct}%</span>
                 </div>
               </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden min-w-0">
                 <div
                   className={`h-full rounded-full ${colors[i]}`}
                   style={{ width: `${pct}%`, transition: 'width 0.6s ease' }}

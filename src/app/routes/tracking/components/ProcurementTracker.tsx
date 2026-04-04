@@ -45,13 +45,13 @@ const ProcurementCard = ({ item, dDay, isNotified, onToggleNotify, onImpactClick
       className={`rounded-xl border transition-all duration-200 ${isClosed ? 'opacity-50' : ''} ${config.ring} bg-white mb-2`}
     >
       <button
-        className="w-full text-left p-3.5 cursor-pointer"
+        className="w-full text-left p-3 sm:p-3.5 cursor-pointer"
         onClick={() => setExpanded((v) => !v)}
       >
         <div className="flex items-start gap-3">
           {/* D-Day Badge */}
           <div
-            className={`shrink-0 flex flex-col items-center justify-center rounded-xl ${config.badge} border ${config.ring}`}
+            className={`shrink-0 flex-shrink-0 flex flex-col items-center justify-center rounded-xl ${config.badge} border ${config.ring}`}
             style={{ width: 52, height: 52 }}
           >
             <span className="text-xs font-black leading-none">{config.label}</span>
@@ -66,7 +66,7 @@ const ProcurementCard = ({ item, dDay, isNotified, onToggleNotify, onImpactClick
               </p>
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleNotify(item.id); }}
-                className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-full transition-colors cursor-pointer ml-1 ${
+                className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ml-1 ${
                   isNotified ? 'text-[#2ec4a9] bg-[#edfaf6]' : 'text-gray-300 hover:text-gray-400'
                 }`}
                 title={isNotified ? '알림 해제' : '알림 설정'}
@@ -76,11 +76,11 @@ const ProcurementCard = ({ item, dDay, isNotified, onToggleNotify, onImpactClick
             </div>
 
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] text-gray-400">{item.organization}</span>
-              <span className="text-[11px] text-gray-300">·</span>
-              <span className="px-1.5 py-0.5 bg-gray-50 text-gray-500 text-[10px] font-medium rounded-full">{item.category}</span>
-              <span className="text-[11px] text-gray-300">·</span>
-              <span className="text-[11px] font-bold text-gray-700">{item.budget}</span>
+              <span className="text-[11px] sm:text-xs text-gray-400">{item.organization}</span>
+              <span className="text-[11px] sm:text-xs text-gray-300">·</span>
+              <span className="px-1.5 py-0.5 bg-gray-50 text-gray-500 text-[10px] sm:text-xs font-medium rounded-full">{item.category}</span>
+              <span className="text-[11px] sm:text-xs text-gray-300">·</span>
+              <span className="text-[11px] sm:text-xs font-bold text-gray-700">{item.budget}</span>
             </div>
 
             {!isClosed && (
@@ -102,7 +102,7 @@ const ProcurementCard = ({ item, dDay, isNotified, onToggleNotify, onImpactClick
             </span>
             <button
               onClick={(e) => { e.stopPropagation(); onImpactClick(e); }}
-              className="text-[11px] text-gray-400 hover:text-[#2ec4a9] hover:underline cursor-pointer transition-colors whitespace-nowrap"
+              className="text-[11px] sm:text-xs text-gray-400 hover:text-[#2ec4a9] hover:underline cursor-pointer transition-colors whitespace-nowrap px-2 py-1 min-h-[36px] flex items-center"
               title="관련 기사 보기"
             >
               임팩트 {item.impactScore}
@@ -233,7 +233,7 @@ const ProcurementTracker = ({ onArticleClick }: ProcurementTrackerProps) => {
           <button
             key={tab.key}
             onClick={() => { setFilter(tab.key); setShowAll(false); }}
-            className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex-1 flex items-center justify-center gap-1 py-2.5 min-h-[44px] rounded-md text-[11px] sm:text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
               filter === tab.key ? 'bg-white text-gray-700' : 'text-gray-400 hover:text-gray-500'
             }`}
           >
@@ -263,7 +263,7 @@ const ProcurementTracker = ({ onArticleClick }: ProcurementTrackerProps) => {
           {filteredItems.length > 3 && (
             <button
               onClick={() => setShowAll((v) => !v)}
-              className="w-full py-2 text-xs font-medium text-gray-400 hover:text-[#2ec4a9] transition-colors cursor-pointer flex items-center justify-center gap-1"
+              className="w-full py-2 min-h-[36px] text-xs font-medium text-gray-400 hover:text-[#2ec4a9] transition-colors cursor-pointer flex items-center justify-center gap-1"
             >
               <span className="w-4 h-4 flex items-center justify-center">
                 <i className={`${showAll ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} text-sm`} />

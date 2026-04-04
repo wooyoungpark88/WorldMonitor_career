@@ -15,7 +15,7 @@ const menuItems = [
 const Sidebar = ({ activeMenu, onMenuChange, isMobileOpen = false, onMobileClose }: SidebarProps) => {
   return (
     <aside
-      className={`w-56 bg-white border-r border-gray-100 flex flex-col fixed left-0 top-0 bottom-0 z-30 transition-transform duration-300 ${
+      className={`w-64 max-w-[85vw] lg:w-56 lg:max-w-none bg-white border-r border-gray-100 flex flex-col fixed left-0 top-0 bottom-0 z-30 transition-transform duration-300 ${
         isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}
     >
@@ -28,7 +28,7 @@ const Sidebar = ({ activeMenu, onMenuChange, isMobileOpen = false, onMobileClose
           </div>
           <button
             onClick={onMobileClose}
-            className="lg:hidden w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-pointer"
+            className="lg:hidden w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-pointer rounded-xl"
           >
             <i className="ri-close-line text-base" />
           </button>
@@ -41,7 +41,7 @@ const Sidebar = ({ activeMenu, onMenuChange, isMobileOpen = false, onMobileClose
           <button
             key={item.id}
             onClick={() => { onMenuChange(item.id); onMobileClose?.(); }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
+            className={`w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-lg mb-1 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
               activeMenu === item.id
                 ? 'bg-[#e6faf6] text-[#2ec4a9]'
                 : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
@@ -72,7 +72,7 @@ const Sidebar = ({ activeMenu, onMenuChange, isMobileOpen = false, onMobileClose
       <div className="flex-1" />
 
       {/* User Profile */}
-      <div className="px-4 py-4 border-t border-gray-100 shrink-0">
+      <div className="px-4 py-4 border-t border-gray-100 shrink-0" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 flex items-center justify-center rounded-full bg-[#2ec4a9] text-white text-xs font-bold shrink-0">
             L

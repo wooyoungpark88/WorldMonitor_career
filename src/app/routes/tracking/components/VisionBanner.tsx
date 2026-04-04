@@ -29,12 +29,20 @@ const VisionBanner = ({ activeStatFilter, onStatClick }: VisionBannerProps) => {
         style={{ background: 'linear-gradient(135deg, #08140f 0%, #0f221a 100%)' }}
         onClick={() => setCollapsed(false)}
       >
-        <div className="flex items-center gap-3">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#2ec4a9]" style={{ animation: 'pulseGlow 2s ease-in-out infinite' }} />
-          <span className="text-[#2ec4a9] text-xs font-bold tracking-widest uppercase">커리어 비전</span>
-          <span className="text-white/60 text-sm font-semibold italic">팔릴수록 세상이 더 좋아지는.</span>
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#2ec4a9] shrink-0" style={{ animation: 'pulseGlow 2s ease-in-out infinite' }} />
+          <span className="text-[#2ec4a9] text-xs font-bold tracking-widest uppercase shrink-0">커리어 비전</span>
+          <span className="text-white/60 text-sm font-semibold italic hidden sm:inline">팔릴수록 세상이 더 좋아지는.</span>
+          {/* Mobile collapsed stat summary */}
+          <div className="flex sm:hidden items-center gap-2 text-[10px] min-w-0">
+            <span className="text-[#2ec4a9] font-bold">{totalSignals}<span className="text-[#2ec4a9]/50 ml-0.5">시그널</span></span>
+            <span className="text-white/20">|</span>
+            <span className="text-emerald-400 font-bold">{opportunities}<span className="text-emerald-400/50 ml-0.5">HIGH</span></span>
+            <span className="text-white/20">|</span>
+            <span className="text-orange-400 font-bold">{recentProcurements}<span className="text-orange-400/50 ml-0.5">신규</span></span>
+          </div>
         </div>
-        <span className="w-6 h-6 flex items-center justify-center text-white/30 hover:text-white/60">
+        <span className="w-6 h-6 flex items-center justify-center text-white/30 hover:text-white/60 shrink-0">
           <i className="ri-expand-diagonal-line text-sm" />
         </span>
       </div>
@@ -42,7 +50,7 @@ const VisionBanner = ({ activeStatFilter, onStatClick }: VisionBannerProps) => {
   }
 
   const statCardBase =
-    'rounded-xl px-3 py-2.5 relative overflow-hidden cursor-pointer transition-all duration-200';
+    'rounded-xl px-3 py-2.5 min-h-[48px] relative overflow-hidden cursor-pointer transition-all duration-200';
 
   const isActive = (f: StatFilter) => activeStatFilter === f;
   const hasAnyFilter = activeStatFilter !== null && activeStatFilter !== undefined;
@@ -100,7 +108,7 @@ const VisionBanner = ({ activeStatFilter, onStatClick }: VisionBannerProps) => {
           </div>
           <button
             onClick={() => setCollapsed(true)}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-white/20 hover:text-white/50 hover:bg-white/5 transition-colors cursor-pointer"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-white/20 hover:text-white/50 hover:bg-white/5 transition-colors cursor-pointer"
           >
             <i className="ri-subtract-line text-sm" />
           </button>
@@ -174,7 +182,7 @@ const VisionBanner = ({ activeStatFilter, onStatClick }: VisionBannerProps) => {
         <div className="h-px bg-white/8 mb-3" />
 
         {/* Stats grid — clickable */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
 
           {/* 시그널 추적 */}
           <button

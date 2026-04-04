@@ -63,7 +63,7 @@ const NewsDetailPanel = ({ article, onClose, bookmarked, onToggleBookmark }: New
       {/* Slide Panel — full width on mobile, fixed 480px on sm+ */}
       <div
         ref={panelRef}
-        className={`fixed top-0 right-0 h-full w-full sm:w-[480px] bg-white z-40 flex flex-col transform transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 h-full max-h-screen w-full sm:w-[480px] bg-white z-40 flex flex-col transform transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -75,7 +75,7 @@ const NewsDetailPanel = ({ article, onClose, bookmarked, onToggleBookmark }: New
                 {/* Mobile back arrow */}
                 <button
                   onClick={onClose}
-                  className="sm:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer mr-1 shrink-0"
+                  className="sm:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer mr-1 shrink-0"
                 >
                   <i className="ri-arrow-left-line text-gray-600 text-lg" />
                 </button>
@@ -112,11 +112,11 @@ const NewsDetailPanel = ({ article, onClose, bookmarked, onToggleBookmark }: New
                 {/* Sub-tags */}
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {article.tags.map((tag, i) => (
-                    <span key={i} className="text-[11px] px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
+                    <span key={i} className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
                       {tag}
                     </span>
                   ))}
-                  <span className="text-[11px] px-2 py-0.5 bg-gray-100 text-gray-400 rounded-full ml-auto">
+                  <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-400 rounded-full ml-auto">
                     {article.daysAgo === 0 ? '오늘' : article.daysAgo === 1 ? '1일 전' : `${article.daysAgo}일 전`}
                   </span>
                 </div>
@@ -127,7 +127,7 @@ const NewsDetailPanel = ({ article, onClose, bookmarked, onToggleBookmark }: New
                 </h2>
 
                 {/* Score Cards Row */}
-                <div className="grid grid-cols-2 gap-3 mb-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 mb-5">
                   {/* Sentiment */}
                   <div className={`rounded-xl p-3.5 ${sentimentConfig[article.analysis.sentiment].bg}`}>
                     <div className="flex items-center gap-1.5 mb-2">
@@ -258,14 +258,14 @@ const NewsDetailPanel = ({ article, onClose, bookmarked, onToggleBookmark }: New
             </div>
 
             {/* Footer Actions */}
-            <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex items-center gap-2 flex-shrink-0 bg-white">
-              <button className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#2ec4a9] text-white text-sm font-semibold rounded-xl hover:bg-[#28b09a] transition-colors cursor-pointer whitespace-nowrap">
+            <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-center gap-2 flex-shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <button className="w-full sm:w-auto sm:flex-1 flex items-center justify-center gap-2 py-3 bg-[#2ec4a9] text-white text-sm font-semibold rounded-xl hover:bg-[#28b09a] transition-colors cursor-pointer whitespace-nowrap">
                 <span className="w-4 h-4 flex items-center justify-center">
                   <i className="ri-book-open-line text-sm" />
                 </span>
                 Study로 보내기
               </button>
-              <button className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap">
+              <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap">
                 <span className="w-4 h-4 flex items-center justify-center">
                   <i className="ri-share-line text-sm" />
                 </span>
