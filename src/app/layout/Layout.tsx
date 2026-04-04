@@ -131,7 +131,7 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* Scrollable Page Content */}
         <main className="flex-1 overflow-auto bg-[#f7f9f8] relative">
-          <div className="absolute inset-0 p-6" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+          <div className="absolute inset-0 p-4 lg:p-5" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
             {children}
           </div>
         </main>

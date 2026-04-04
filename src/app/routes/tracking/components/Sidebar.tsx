@@ -15,8 +15,8 @@ const menuItems = [
 const Sidebar = ({ activeMenu, onMenuChange, isMobileOpen = false, onMobileClose }: SidebarProps) => {
   return (
     <aside
-      className={`w-64 max-w-[85vw] lg:w-56 lg:max-w-none bg-white border-r border-gray-100 flex flex-col fixed left-0 top-0 bottom-0 z-30 transition-transform duration-300 ${
-        isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      className={`w-64 max-w-[85vw] bg-white border-r border-gray-100 flex flex-col fixed left-0 top-0 bottom-0 z-30 transition-transform duration-300 lg:hidden ${
+        isMobileOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
     >
       {/* Logo */}

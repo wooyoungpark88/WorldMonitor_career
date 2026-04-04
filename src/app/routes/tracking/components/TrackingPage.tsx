@@ -153,7 +153,7 @@ const TrackingPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#f7f9f8]" style={{ fontFamily: "'Inter', 'Noto Sans KR', sans-serif" }}>
+    <div className="h-full">
 
       {/* Mobile sidebar backdrop */}
       {mobileSidebarOpen && (
@@ -170,7 +170,7 @@ const TrackingPage = () => {
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
 
-      <div className="lg:ml-56 flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen">
 
         {/* Mobile Top Bar */}
         <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
@@ -208,25 +208,8 @@ const TrackingPage = () => {
         <div className="flex flex-col xl:flex-row flex-1">
 
           {/* Center Content */}
-          <div className={`flex-1 min-w-0 p-4 md:p-6 ${mobileTab === 'insights' ? 'hidden xl:block' : 'block'}`}>
-            <div className="hidden lg:flex items-center justify-between mb-6">
-              <div className="flex-1 max-w-md">
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-100 rounded-xl">
-                  <span className="w-4 h-4 flex items-center justify-center">
-                    <i className="ri-search-line text-gray-400 text-sm" />
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Search news, companies, frameworks..."
-                    className="flex-1 text-sm text-gray-600 placeholder-gray-400 outline-none bg-transparent"
-                  />
-                </div>
-              </div>
-              <button className="ml-4 w-9 h-9 flex items-center justify-center bg-white border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer relative">
-                <i className="ri-notification-3-line text-gray-500 text-base" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-400 rounded-full" />
-              </button>
-            </div>
+          <div className={`flex-1 min-w-0 p-3 md:p-4 ${mobileTab === 'insights' ? 'hidden xl:block' : 'block'}`}>
+            {/* Search bar is in Layout header — no duplication needed */}
 
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -282,7 +265,7 @@ const TrackingPage = () => {
 
           {/* Right Panel */}
           <div
-            className={`xl:w-[360px] xl:min-w-[360px] p-4 md:p-6 xl:pl-0 flex flex-col gap-4 ${
+            className={`xl:w-[340px] xl:min-w-[340px] p-3 md:p-4 xl:pl-0 flex flex-col gap-4 ${
               mobileTab === 'news' ? 'hidden xl:flex' : 'flex'
             }`}
           >
